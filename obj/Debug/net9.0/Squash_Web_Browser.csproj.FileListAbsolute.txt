@@ -71,3 +71,5 @@
 /home/ajaz/Desktop/Heriot Watt Work/Computer Science (Year 4)/Semester 1/Industrial Programming (F20SC)/Squash_Web_Browser/obj/Debug/net9.0/Squash_Web_Browser.pdb
 /home/ajaz/Desktop/Heriot Watt Work/Computer Science (Year 4)/Semester 1/Industrial Programming (F20SC)/Squash_Web_Browser/obj/Debug/net9.0/Squash_Web_Browser.genruntimeconfig.cache
 /home/ajaz/Desktop/Heriot Watt Work/Computer Science (Year 4)/Semester 1/Industrial Programming (F20SC)/Squash_Web_Browser/obj/Debug/net9.0/ref/Squash_Web_Browser.dll
+/home/ajaz/Desktop/Heriot Watt Work/Computer Science (Year 4)/Semester 1/Industrial Programming (F20SC)/Squash_Web_Browser/obj/Debug/net9.0/Squash_Web_Browser.sourcelink.json
+/home/ajaz/Desktop/Heriot Watt Work/Computer Science (Year 4)/Semester 1/Industrial Programming (F20SC)/Squash_Web_Browser/bin/Debug/net9.0/HtmlAgilityPack.dll

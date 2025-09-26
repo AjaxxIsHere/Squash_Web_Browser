@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "n+uymDLMc1Q=",
+  "dgSpecHash": "fFXtE2Y3hgk=",
   "success": true,
   "projectFilePath": "/home/ajaz/Desktop/Heriot Watt Work/Computer Science (Year 4)/Semester 1/Industrial Programming (F20SC)/Squash_Web_Browser/Squash_Web_Browser.csproj",
   "expectedPackageFiles": [
@@ -24,6 +24,7 @@
     "/home/ajaz/.nuget/packages/harfbuzzsharp.nativeassets.macos/8.3.1.1/harfbuzzsharp.nativeassets.macos.8.3.1.1.nupkg.sha512",
     "/home/ajaz/.nuget/packages/harfbuzzsharp.nativeassets.webassembly/8.3.1.1/harfbuzzsharp.nativeassets.webassembly.8.3.1.1.nupkg.sha512",
     "/home/ajaz/.nuget/packages/harfbuzzsharp.nativeassets.win32/8.3.1.1/harfbuzzsharp.nativeassets.win32.8.3.1.1.nupkg.sha512",
+    "/home/ajaz/.nuget/packages/htmlagilitypack/1.12.3/htmlagilitypack.1.12.3.nupkg.sha512",
     "/home/ajaz/.nuget/packages/microcom.runtime/0.11.0/microcom.runtime.0.11.0.nupkg.sha512",
     "/home/ajaz/.nuget/packages/skiasharp/2.88.9/skiasharp.2.88.9.nupkg.sha512",
     "/home/ajaz/.nuget/packages/skiasharp.nativeassets.linux/2.88.9/skiasharp.nativeassets.linux.2.88.9.nupkg.sha512",

@@ -4,13 +4,13 @@
              x:DataType="vm:MainWindowViewModel"
              x:Class="Squash_Web_Browser.Controls.AddressBar">
   <DockPanel Margin="4">
-    <Button Content="☰" Width="40" Margin="4,0,0,0" Name="SidebarToggleButton" ToolTip.Tip="Toggle Sidebar" />
+    <Button Content="☰" Width="40" Height="40" Margin="4,0,0,0" Name="SidebarToggleButton" ToolTip.Tip="Toggle Sidebar" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
     <Separator Width="8"/>
     <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" Spacing="4">
-      <Button Content="◀" Width="32" Name="BackButton" ToolTip.Tip="Back" />
-      <Button Content="▶" Width="32" Name="ForwardButton" ToolTip.Tip="Forward" />
-      <Button Content="⟳" Width="32" Name="ReloadButton" ToolTip.Tip="Reload" />
-      <Button Content="🏠" Width="32" Name="HomeButton" ToolTip.Tip="Home" />
+      <Button Content="◀" Name="BackButton" ToolTip.Tip="Back" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="40" Height="40"/>
+      <Button Content="▶" Name="ForwardButton" ToolTip.Tip="Forward" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="40" Height="40"/>
+      <Button Content="⟳" Name="ReloadButton" ToolTip.Tip="Reload" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="40" Height="40"/>
+      <Button Content="🏠" Name="HomeButton" ToolTip.Tip="Home" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="40" Height="40"/>
     </StackPanel>
     <!-- Add spacing here -->
     <Separator Width="32"/>
@@ -21,8 +21,9 @@
       </TextBox.KeyBindings>
     </TextBox>
     <Separator Width="32"/>
-  <Button Content="Go" Width="48" Margin="4,0,0,0" Name="GoButton" Command="{Binding FetchHtmlCommand}" />
-    <Button Content="★" Width="40" Margin="4,0,0,0" Name="BookmarkButton" ToolTip.Tip="Add Bookmark" />
-    
+  <Button Content="Go" Width="50" Height="40" Margin="4,0,0,0" Name="GoButton" Command="{Binding FetchHtmlCommand}" HorizontalAlignment="Center" VerticalContentAlignment="Center" />
+    <Button Content="HTML" Width="60" Height="40" Margin="4,0,0,0" ToolTip.Tip="Toggle Raw HTML" Command="{Binding ToggleHtmlCommand}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+    <Button Content="★" Width="40" Height="40" Margin="4,0,0,0" Name="BookmarkButton" ToolTip.Tip="Add Bookmark" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+
   </DockPanel>
 </UserControl>
