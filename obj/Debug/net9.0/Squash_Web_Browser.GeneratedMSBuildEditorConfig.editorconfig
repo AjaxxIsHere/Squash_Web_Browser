@@ -1,0 +1,46 @@
+is_global = true
+build_property.AvaloniaNameGeneratorIsEnabled = true
+build_property.AvaloniaNameGeneratorBehavior = InitializeComponent
+build_property.AvaloniaNameGeneratorDefaultFieldModifier = internal
+build_property.AvaloniaNameGeneratorFilterByPath = *
+build_property.AvaloniaNameGeneratorFilterByNamespace = *
+build_property.AvaloniaNameGeneratorViewFileNamingStrategy = NamespaceAndClassName
+build_property.AvaloniaNameGeneratorAttachDevTools = true
+build_property.TargetFramework = net9.0
+build_property.TargetPlatformMinVersion = 
+build_property.UsingMicrosoftNETSdkWeb = 
+build_property.ProjectTypeGuids = 
+build_property.InvariantGlobalization = 
+build_property.PlatformNeutralAssembly = 
+build_property.EnforceExtendedAnalyzerRules = 
+build_property._SupportedPlatformList = Linux,macOS,Windows
+build_property.RootNamespace = Squash_Web_Browser
+build_property.ProjectDir = /home/ajaz/Desktop/Heriot Watt Work/Computer Science (Year 4)/Semester 1/Industrial Programming (F20SC)/Squash_Web_Browser/
+build_property.EnableComHosting = 
+build_property.EnableGeneratedComInterfaceComImportInterop = 
+build_property.EffectiveAnalysisLevelStyle = 9.0
+build_property.EnableCodeStyleSeverity = 
+
+[/home/ajaz/Desktop/Heriot Watt Work/Computer Science (Year 4)/Semester 1/Industrial Programming (F20SC)/Squash_Web_Browser/App.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[/home/ajaz/Desktop/Heriot Watt Work/Computer Science (Year 4)/Semester 1/Industrial Programming (F20SC)/Squash_Web_Browser/Controls/AddressBar.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[/home/ajaz/Desktop/Heriot Watt Work/Computer Science (Year 4)/Semester 1/Industrial Programming (F20SC)/Squash_Web_Browser/Controls/BookmarksPanel.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[/home/ajaz/Desktop/Heriot Watt Work/Computer Science (Year 4)/Semester 1/Industrial Programming (F20SC)/Squash_Web_Browser/Controls/DownloadsPanel.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[/home/ajaz/Desktop/Heriot Watt Work/Computer Science (Year 4)/Semester 1/Industrial Programming (F20SC)/Squash_Web_Browser/Controls/HistoryPanel.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[/home/ajaz/Desktop/Heriot Watt Work/Computer Science (Year 4)/Semester 1/Industrial Programming (F20SC)/Squash_Web_Browser/Controls/SettingsPanel.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[/home/ajaz/Desktop/Heriot Watt Work/Computer Science (Year 4)/Semester 1/Industrial Programming (F20SC)/Squash_Web_Browser/Controls/TabStrip.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[/home/ajaz/Desktop/Heriot Watt Work/Computer Science (Year 4)/Semester 1/Industrial Programming (F20SC)/Squash_Web_Browser/MainWindow.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml

@@ -1,0 +1,8 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Squash_Web_Browser.Controls.DownloadsPanel">
+  <DockPanel>
+    <TextBlock Text="Downloads" FontSize="18" FontWeight="Bold" Margin="8" />
+    <ListBox Name="DownloadsList" Margin="8" />
+  </DockPanel>
+</UserControl>

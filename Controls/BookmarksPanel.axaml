@@ -1,0 +1,8 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Squash_Web_Browser.Controls.BookmarksPanel">
+  <DockPanel>
+    <TextBlock Text="Bookmarks" FontSize="14" FontWeight="Bold" Margin="8" />
+    <ListBox Name="BookmarksList" Margin="8" />
+  </DockPanel>
+</UserControl>

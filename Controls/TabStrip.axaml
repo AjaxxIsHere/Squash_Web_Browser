@@ -1,0 +1,25 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Squash_Web_Browser.Controls.TabStrip">
+  <DockPanel Margin="0,0,0,4" Height="32">
+    <ItemsControl Name="TabsItemsControl" HorizontalAlignment="Stretch">
+      <ItemsControl.ItemsPanel>
+        <ItemsPanelTemplate>
+          <StackPanel Orientation="Horizontal" Spacing="4" />
+        </ItemsPanelTemplate>
+      </ItemsControl.ItemsPanel>
+      <!-- Tab item template placeholder -->
+      <ItemsControl.ItemTemplate>
+        <DataTemplate>
+          <Border Classes="TabItem" Padding="8,4" CornerRadius="4" Background="Gray">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <TextBlock Text="Tab" />
+              <Button Content="✕" Width="20" Height="20" />
+            </StackPanel>
+          </Border>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+    <Button Content="＋" Width="32" Name="NewTabButton" ToolTip.Tip="New Tab" DockPanel.Dock="Right" />
+  </DockPanel>
+</UserControl>

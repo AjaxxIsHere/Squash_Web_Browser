@@ -1,0 +1,28 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Squash_Web_Browser.ViewModels"
+             x:DataType="vm:MainWindowViewModel"
+             x:Class="Squash_Web_Browser.Controls.AddressBar">
+  <DockPanel Margin="4">
+    <Button Content="☰" Width="40" Margin="4,0,0,0" Name="SidebarToggleButton" ToolTip.Tip="Toggle Sidebar" />
+    <Separator Width="8"/>
+    <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" Spacing="4">
+      <Button Content="◀" Width="32" Name="BackButton" ToolTip.Tip="Back" />
+      <Button Content="▶" Width="32" Name="ForwardButton" ToolTip.Tip="Forward" />
+      <Button Content="⟳" Width="32" Name="ReloadButton" ToolTip.Tip="Reload" />
+      <Button Content="🏠" Width="32" Name="HomeButton" ToolTip.Tip="Home" />
+    </StackPanel>
+    <!-- Add spacing here -->
+    <Separator Width="32"/>
+    <TextBox Watermark="Enter URL or search" Name="AddressTextBox" HorizontalAlignment="Stretch" Width="400"
+             Text="{Binding Address, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+      <TextBox.KeyBindings>
+        <KeyBinding Gesture="Enter" Command="{Binding FetchHtmlCommand}" />
+      </TextBox.KeyBindings>
+    </TextBox>
+    <Separator Width="32"/>
+  <Button Content="Go" Width="48" Margin="4,0,0,0" Name="GoButton" Command="{Binding FetchHtmlCommand}" />
+    <Button Content="★" Width="40" Margin="4,0,0,0" Name="BookmarkButton" ToolTip.Tip="Add Bookmark" />
+    
+  </DockPanel>
+</UserControl>
