@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Squash_Web_Browser")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f93e15988726082050c4634aef819c4b60746cd5")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+87af59aadbccb0474d3ac2bc903bf48462785861")]
 [assembly: System.Reflection.AssemblyProductAttribute("Squash_Web_Browser")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Squash_Web_Browser")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

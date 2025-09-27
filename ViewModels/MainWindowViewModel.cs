@@ -13,17 +13,33 @@ public class MainWindowViewModel : ViewModelBase
 {
     public string Title => "Squash Browser";
 
-    private string _address = "https://www.example.com"; // default example URL
-    private string _htmlSource = string.Empty;             // holds fetched HTML
-    private string _status = "Idle";                      // status messages (success/error/loading)
-    private bool _isBusy;                                  // indicates fetch in progress
-    private string _pageTitle = string.Empty;              // parsed <title>
-    private bool _showHtml = true;                         // controls visibility of raw HTML panel
+    // default example URL
+    private string _address = "https://www.hw.ac.uk/dubai";
 
-    private readonly HttpClient _httpClient = new();       // reuse a single HttpClient instance
+    // holds fetched HTML
+    private string _htmlSource = string.Empty;
 
-    public ObservableCollection<ParsedLink> Links { get; } = new(); // parsed links
+    // status messages (success/error/loading)
+    private string _status = "Idle";
 
+    // indicates fetch in progress            
+    private bool _isBusy;
+
+    // parsed <title>               
+    private string _pageTitle = string.Empty;
+
+    // controls visibility of raw HTML panel
+    private bool _showHtml = true;
+
+    // reuse a single HttpClient instance
+    private readonly HttpClient _httpClient = new();
+
+    // parsed links
+
+    public ObservableCollection<ParsedLink> Links
+    {
+        get;
+    } = new();
     public string Address
     {
         get => _address;
@@ -79,8 +95,14 @@ public class MainWindowViewModel : ViewModelBase
     }
 
     // Command bound to the Go button / Enter key to fetch HTML
-    public ICommand FetchHtmlCommand { get; }
-    public ICommand ToggleHtmlCommand { get; }
+    public ICommand FetchHtmlCommand
+    {
+        get;
+    }
+    public ICommand ToggleHtmlCommand
+    {
+        get;
+    }
 
     public MainWindowViewModel()
     {
@@ -141,7 +163,7 @@ public class MainWindowViewModel : ViewModelBase
         }
 
         IsBusy = true;
-        Status = "Loading...";
+        // Status = "Loading...";
         HtmlSource = string.Empty; // clear previous
 
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20)); // simple timeout
@@ -167,9 +189,22 @@ public class MainWindowViewModel : ViewModelBase
             var html = encoding.GetString(bytes);
             HtmlSource = html;
 
-            Status = response.IsSuccessStatusCode
-                ? $"Loaded {bytes.Length:N0} bytes"
-                : $"HTTP {(int)response.StatusCode} {response.ReasonPhrase}";
+
+            if (response.IsSuccessStatusCode)
+            {
+                Status = $"Loaded {bytes.Length:N0} bytes (HTTP {(int)response.StatusCode} {response.ReasonPhrase})";
+            }
+            else
+            {
+                string errorMsg = response.StatusCode switch
+                {
+                    System.Net.HttpStatusCode.BadRequest => "400 Bad Request: The server could not understand the request.",
+                    System.Net.HttpStatusCode.Forbidden => "403 Forbidden: You do not have permission to access this resource.",
+                    System.Net.HttpStatusCode.NotFound => "404 Not Found: The requested resource could not be found.",
+                    _ => $"HTTP {(int)response.StatusCode} {response.ReasonPhrase}"
+                };
+                Status = errorMsg;
+            }
 
             // Parse after successful fetch (even if non-success status we still attempt to parse body)
             ParseHtml(html);
@@ -273,9 +308,7 @@ public class RelayCommand : ICommand
     public void RaiseCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
 }
 
-/// <summary>
-/// Simple ICommand implementation for async operations with CanExecute refresh.
-/// </summary>
+// Simple ICommand implementation for async operations with CanExecute refresh.
 public class AsyncRelayCommand : ICommand
 {
     private readonly Func<Task> _execute;
