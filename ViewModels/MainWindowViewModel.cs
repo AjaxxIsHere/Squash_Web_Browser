@@ -1,5 +1,6 @@
 using System;
 using System.Net.Http;
+using Microsoft.Data.Sqlite;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,10 +12,11 @@ namespace Squash_Web_Browser.ViewModels;
 
 public class MainWindowViewModel : ViewModelBase
 {
-    public string Title => "Squash Browser";
+    public static string Title => "Squash Browser";
 
     // default example URL
     private string _address = "https://www.hw.ac.uk/dubai";
+    private const string DbFile = "browserdata.db";
 
     // holds fetched HTML
     private string _htmlSource = string.Empty;
@@ -49,6 +51,7 @@ public class MainWindowViewModel : ViewModelBase
             {
                 _address = value;
                 RaisePropertyChanged();
+                SaveLastUrl(_address);
             }
         }
     }
@@ -108,6 +111,45 @@ public class MainWindowViewModel : ViewModelBase
     {
         FetchHtmlCommand = new AsyncRelayCommand(FetchHtmlAsync, () => !IsBusy);
         ToggleHtmlCommand = new RelayCommand(() => ShowHtml = !ShowHtml);
+        // Load last URL from DB on startup
+        var lastUrl = LoadLastUrl();
+        if (!string.IsNullOrWhiteSpace(lastUrl))
+        {
+            _address = lastUrl;
+            RaisePropertyChanged(nameof(Address));
+        }
+    }
+
+    private void SaveLastUrl(string url)
+    {
+        try
+        {
+            using var conn = new SqliteConnection($"Data Source={DbFile}");
+            conn.Open();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = @"CREATE TABLE IF NOT EXISTS Settings (Key TEXT PRIMARY KEY, Value TEXT);";
+            cmd.ExecuteNonQuery();
+            cmd.CommandText = @"INSERT INTO Settings (Key, Value) VALUES ('LastUrl', $url) ON CONFLICT(Key) DO UPDATE SET Value=$url;";
+            cmd.Parameters.AddWithValue("$url", url);
+            cmd.ExecuteNonQuery();
+        }
+        catch { /* ignore errors for now */ }
+    }
+
+    private string? LoadLastUrl()
+    {
+        try
+        {
+            using var conn = new SqliteConnection($"Data Source={DbFile}");
+            conn.Open();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = @"SELECT Value FROM Settings WHERE Key='LastUrl' LIMIT 1;";
+            using var reader = cmd.ExecuteReader();
+            if (reader.Read())
+                return reader.GetString(0);
+        }
+        catch { }
+        return null;
     }
 
     public bool ShowHtml

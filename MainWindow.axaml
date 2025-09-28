@@ -11,7 +11,7 @@
                 MinWidth="800" MinHeight="500">
     <DockPanel>
         <!-- Menu Bar Placeholder -->
-        <Menu DockPanel.Dock="Top">
+        <!-- <Menu DockPanel.Dock="Top">
             <MenuItem Header="File">
                 <MenuItem Header="New Tab" />
                 <MenuItem Header="New Window" />
@@ -40,10 +40,10 @@
             <MenuItem Header="Help">
                 <MenuItem Header="About" />
             </MenuItem>
-        </Menu>
+        </Menu> -->
 
-        <!-- Address bar -->
-        <controls:AddressBar Name="AddressBar" DockPanel.Dock="Top" />
+    <!-- Address bar (now spans full width) -->
+    <controls:AddressBar Name="AddressBar" DockPanel.Dock="Top" />
 
         <!-- Main content split: sidebar + web content -->
         <Grid Name="MainGrid" ColumnDefinitions="500,*" RowDefinitions="*">
