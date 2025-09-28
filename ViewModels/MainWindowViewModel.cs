@@ -30,7 +30,7 @@ public class MainWindowViewModel : ViewModelBase
     private bool _showHtml = true;
 
     private readonly IWebService _webService;
-    private readonly ISettingsService _settingsService;
+    private readonly IStorageService _settingsService;
     private readonly IHtmlParser _htmlParser;
 
     // parsed links
@@ -109,9 +109,9 @@ public class MainWindowViewModel : ViewModelBase
     public ICommand LinkClickCommand { get; }
 
     public MainWindowViewModel()
-        : this(new WebService(), new SettingsService(DbFile), new HtmlParser()) { }
+        : this(new WebService(), new StorageService(DbFile), new HtmlParser()) { }
 
-    public MainWindowViewModel(IWebService webService, ISettingsService settingsService, IHtmlParser htmlParser)
+    public MainWindowViewModel(IWebService webService, IStorageService settingsService, IHtmlParser htmlParser)
     {
         _webService = webService;
         _settingsService = settingsService;

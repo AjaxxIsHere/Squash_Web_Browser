@@ -1,18 +1,17 @@
 using Microsoft.Data.Sqlite;
-using System;
 
 namespace Squash_Web_Browser.Services;
 
-public interface ISettingsService
+public interface IStorageService
 {
 	void SaveLastUrl(string url);
 	string? LoadLastUrl();
 }
 
-public sealed class SettingsService : ISettingsService
+public sealed class StorageService : IStorageService
 {
 	private readonly string _dbFile;
-	public SettingsService(string dbFile = "browserdata.db")
+	public StorageService(string dbFile = "browserdata.db")
 	{
 		_dbFile = dbFile;
 	}
