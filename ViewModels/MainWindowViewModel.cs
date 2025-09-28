@@ -1,12 +1,8 @@
 using System;
-using System.Net.Http;
-using Microsoft.Data.Sqlite;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using System.Collections.ObjectModel;
-using HtmlAgilityPack;
+using Squash_Web_Browser.Services;
 
 namespace Squash_Web_Browser.ViewModels;
 
@@ -16,10 +12,10 @@ public class MainWindowViewModel : ViewModelBase
 
     // default example URL
     private string _address = "https://www.hw.ac.uk/dubai";
-    private const string DbFile = "browserdata.db";
+    private const string DbFile = "browserdata.db"; // still referenced by default settings service
 
     // holds fetched HTML
-    private string _htmlSource = string.Empty;
+    private string _htmlSrc = string.Empty;
 
     // status messages (success/error/loading)
     private string _status = "Idle";
@@ -33,20 +29,24 @@ public class MainWindowViewModel : ViewModelBase
     // controls visibility of raw HTML panel
     private bool _showHtml = true;
 
-    // reuse a single HttpClient instance
-    private readonly HttpClient _httpClient = new();
+    private readonly IWebService _webService;
+    private readonly ISettingsService _settingsService;
+    private readonly IHtmlParser _htmlParser;
 
     // parsed links
 
     public ObservableCollection<ParsedLink> Links
     {
         get;
-    } = new();
+    } = [];
+
+    // The URL entered by the user
     public string Address
     {
         get => _address;
         set
         {
+            // Normalize and save last URL to DB
             if (value != _address)
             {
                 _address = value;
@@ -56,24 +56,28 @@ public class MainWindowViewModel : ViewModelBase
         }
     }
 
+    // The fetched HTML source code
     public string HtmlSource
     {
-        get => _htmlSource;
+        get => _htmlSrc;
         private set
         {
-            if (value != _htmlSource)
+            // Update only if changed to avoid unnecessary UI updates
+            if (value != _htmlSrc)
             {
-                _htmlSource = value;
+                _htmlSrc = value;
                 RaisePropertyChanged();
             }
         }
     }
 
+    // Status message for the UI
     public string Status
     {
         get => _status;
         private set
         {
+            // Update only if changed to avoid unnecessary UI updates
             if (value != _status)
             {
                 _status = value;
@@ -81,6 +85,8 @@ public class MainWindowViewModel : ViewModelBase
             }
         }
     }
+
+    // Indicates if a fetch operation is in progress
 
     public bool IsBusy
     {
@@ -98,21 +104,31 @@ public class MainWindowViewModel : ViewModelBase
     }
 
     // Command bound to the Go button / Enter key to fetch HTML
-    public ICommand FetchHtmlCommand
-    {
-        get;
-    }
-    public ICommand ToggleHtmlCommand
-    {
-        get;
-    }
+    public ICommand FetchHtmlCommand { get; }
+    public ICommand ToggleHtmlCommand { get; }
+    public ICommand LinkClickCommand { get; }
 
     public MainWindowViewModel()
+        : this(new WebService(), new SettingsService(DbFile), new HtmlParser()) { }
+
+    public MainWindowViewModel(IWebService webService, ISettingsService settingsService, IHtmlParser htmlParser)
     {
+        _webService = webService;
+        _settingsService = settingsService;
+        _htmlParser = htmlParser;
+
         FetchHtmlCommand = new AsyncRelayCommand(FetchHtmlAsync, () => !IsBusy);
         ToggleHtmlCommand = new RelayCommand(() => ShowHtml = !ShowHtml);
-        // Load last URL from DB on startup
-        var lastUrl = LoadLastUrl();
+        LinkClickCommand = new RelayCommand((object? param) =>
+        {
+            if (param is ParsedLink link && !string.IsNullOrWhiteSpace(link.Href))
+            {
+                Address = link.Href;
+                (FetchHtmlCommand as AsyncRelayCommand)?.Execute(null);
+            }
+        });
+
+        var lastUrl = _settingsService.LoadLastUrl();
         if (!string.IsNullOrWhiteSpace(lastUrl))
         {
             _address = lastUrl;
@@ -120,38 +136,9 @@ public class MainWindowViewModel : ViewModelBase
         }
     }
 
-    private void SaveLastUrl(string url)
-    {
-        try
-        {
-            using var conn = new SqliteConnection($"Data Source={DbFile}");
-            conn.Open();
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = @"CREATE TABLE IF NOT EXISTS Settings (Key TEXT PRIMARY KEY, Value TEXT);";
-            cmd.ExecuteNonQuery();
-            cmd.CommandText = @"INSERT INTO Settings (Key, Value) VALUES ('LastUrl', $url) ON CONFLICT(Key) DO UPDATE SET Value=$url;";
-            cmd.Parameters.AddWithValue("$url", url);
-            cmd.ExecuteNonQuery();
-        }
-        catch { /* ignore errors for now */ }
-    }
+    private void SaveLastUrl(string url) => _settingsService.SaveLastUrl(url);
 
-    private string? LoadLastUrl()
-    {
-        try
-        {
-            using var conn = new SqliteConnection($"Data Source={DbFile}");
-            conn.Open();
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = @"SELECT Value FROM Settings WHERE Key='LastUrl' LIMIT 1;";
-            using var reader = cmd.ExecuteReader();
-            if (reader.Read())
-                return reader.GetString(0);
-        }
-        catch { }
-        return null;
-    }
-
+    // Controls visibility of raw HTML panel
     public bool ShowHtml
     {
         get => _showHtml;
@@ -165,6 +152,7 @@ public class MainWindowViewModel : ViewModelBase
         }
     }
 
+    // The parsed <title> of the fetched page
     public string PageTitle
     {
         get => _pageTitle;
@@ -178,8 +166,12 @@ public class MainWindowViewModel : ViewModelBase
         }
     }
 
+    // Number of parsed links
+
     public int LinkCount => Links.Count;
 
+
+    // Fetches the HTML from the specified URL asynchronously
     private async Task FetchHtmlAsync()
     {
         if (string.IsNullOrWhiteSpace(Address))
@@ -188,83 +180,21 @@ public class MainWindowViewModel : ViewModelBase
             return;
         }
 
-        // Try to build a valid Uri. Add scheme if missing.
-        if (!Uri.TryCreate(Address, UriKind.Absolute, out var uri))
-        {
-            // Try adding https:// if user omitted scheme.
-            if (Uri.TryCreate("https://" + Address, UriKind.Absolute, out var httpsUri))
-            {
-                uri = httpsUri;
-                Address = uri.ToString(); // normalize displayed address
-            }
-            else
-            {
-                Status = "Invalid URL.";
-                return;
-            }
-        }
-
         IsBusy = true;
-        // Status = "Loading...";
-        HtmlSource = string.Empty; // clear previous
-
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20)); // simple timeout
-
+        HtmlSource = string.Empty;
         try
         {
-            // Send request
-            var response = await _httpClient.GetAsync(uri, cts.Token);
-            var bytes = await response.Content.ReadAsByteArrayAsync(cts.Token);
-
-            // Try to detect encoding (fallback UTF8)
-            var charset = response.Content.Headers.ContentType?.CharSet;
-            Encoding encoding;
-            try
+            var result = await _webService.FetchHtmlAsync(Address);
+            HtmlSource = result.Html;
+            Status = result.StatusMessage;
+            if (!string.IsNullOrWhiteSpace(result.Html))
             {
-                encoding = !string.IsNullOrWhiteSpace(charset) ? Encoding.GetEncoding(charset) : Encoding.UTF8;
-            }
-            catch
-            {
-                encoding = Encoding.UTF8;
-            }
-
-            var html = encoding.GetString(bytes);
-            HtmlSource = html;
-
-
-            if (response.IsSuccessStatusCode)
-            {
-                Status = $"Loaded {bytes.Length:N0} bytes (HTTP {(int)response.StatusCode} {response.ReasonPhrase})";
+                ParseHtml(result.Html);
             }
             else
             {
-                string errorMsg = response.StatusCode switch
-                {
-                    System.Net.HttpStatusCode.BadRequest => "400 Bad Request: The server could not understand the request.",
-                    System.Net.HttpStatusCode.Forbidden => "403 Forbidden: You do not have permission to access this resource.",
-                    System.Net.HttpStatusCode.NotFound => "404 Not Found: The requested resource could not be found.",
-                    _ => $"HTTP {(int)response.StatusCode} {response.ReasonPhrase}"
-                };
-                Status = errorMsg;
+                ClearParsed();
             }
-
-            // Parse after successful fetch (even if non-success status we still attempt to parse body)
-            ParseHtml(html);
-        }
-        catch (TaskCanceledException)
-        {
-            Status = "Request timed out.";
-            ClearParsed();
-        }
-        catch (HttpRequestException ex)
-        {
-            Status = "Network error: " + ex.Message;
-            ClearParsed();
-        }
-        catch (Exception ex)
-        {
-            Status = "Unexpected error: " + ex.Message;
-            ClearParsed();
         }
         finally
         {
@@ -272,6 +202,8 @@ public class MainWindowViewModel : ViewModelBase
         }
     }
 
+    // Clears parsed state
+    // For dummies: This is like resetting the "important stuff" when something goes wrong.
     private void ClearParsed()
     {
         PageTitle = string.Empty;
@@ -279,109 +211,16 @@ public class MainWindowViewModel : ViewModelBase
         RaisePropertyChanged(nameof(LinkCount));
     }
 
+    // Parses the HTML to extract <title> and <a href> links
+    // For dummies: This is like reading a webpage and picking out the title and all the links on it.
     private void ParseHtml(string html)
     {
-        if (string.IsNullOrWhiteSpace(html))
-        {
-            ClearParsed();
-            return;
-        }
-
-        try
-        {
-            var doc = new HtmlDocument();
-            doc.LoadHtml(html);
-
-            // Title
-            var titleNode = doc.DocumentNode.SelectSingleNode("//title");
-            var title = titleNode?.InnerText?.Trim() ?? string.Empty;
-            if (!string.IsNullOrEmpty(title))
-            {
-                title = HtmlEntity.DeEntitize(title);
-            }
-            PageTitle = title;
-
-            Links.Clear();
-            var linkNodes = doc.DocumentNode.SelectNodes("//a[@href]");
-            if (linkNodes != null)
-            {
-                int limit = 200; // cap to avoid overwhelming UI
-                int count = 0;
-                foreach (var a in linkNodes)
-                {
-                    if (count++ >= limit) break;
-                    var href = a.GetAttributeValue("href", string.Empty).Trim();
-                    if (string.IsNullOrEmpty(href)) continue;
-                    var text = a.InnerText?.Trim();
-                    if (string.IsNullOrEmpty(text)) text = href;
-                    text = HtmlEntity.DeEntitize(text);
-                    Links.Add(new ParsedLink { Href = href, Text = text });
-                }
-            }
-
-            RaisePropertyChanged(nameof(LinkCount));
-        }
-        catch
-        {
-            // On parse failure just clear parsed state (silent)
-            ClearParsed();
-        }
+        var parseResult = _htmlParser.Parse(html);
+        PageTitle = parseResult.Title;
+        Links.Clear();
+        foreach (var l in parseResult.Links)
+            Links.Add(l);
+        RaisePropertyChanged(nameof(LinkCount));
     }
 }
-
-public class ParsedLink
-{
-    public string Href { get; set; } = string.Empty;
-    public string Text { get; set; } = string.Empty;
-}
-
-public class RelayCommand : ICommand
-{
-    private readonly Action _execute;
-    private readonly Func<bool>? _canExecute;
-    public RelayCommand(Action execute, Func<bool>? canExecute = null)
-    {
-        _execute = execute;
-        _canExecute = canExecute;
-    }
-    public bool CanExecute(object? parameter) => _canExecute?.Invoke() ?? true;
-    public void Execute(object? parameter) => _execute();
-    public event EventHandler? CanExecuteChanged;
-    public void RaiseCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
-}
-
-// Simple ICommand implementation for async operations with CanExecute refresh.
-public class AsyncRelayCommand : ICommand
-{
-    private readonly Func<Task> _execute;
-    private readonly Func<bool>? _canExecute;
-    private bool _isExecuting;
-
-    public AsyncRelayCommand(Func<Task> execute, Func<bool>? canExecute = null)
-    {
-        _execute = execute;
-        _canExecute = canExecute;
-    }
-
-    public bool CanExecute(object? parameter)
-        => !_isExecuting && (_canExecute?.Invoke() ?? true);
-
-    public async void Execute(object? parameter)
-    {
-        if (!CanExecute(parameter)) return;
-        _isExecuting = true;
-        RaiseCanExecuteChanged();
-        try
-        {
-            await _execute();
-        }
-        finally
-        {
-            _isExecuting = false;
-            RaiseCanExecuteChanged();
-        }
-    }
-
-    public event EventHandler? CanExecuteChanged;
-    public void RaiseCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
-}
+// ParsedLink, RelayCommand, AsyncRelayCommand moved to Services namespace file(s)

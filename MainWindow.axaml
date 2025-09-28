@@ -4,6 +4,7 @@
                 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                 xmlns:controls="clr-namespace:Squash_Web_Browser.Controls"
                 xmlns:vm="clr-namespace:Squash_Web_Browser.ViewModels"
+                xmlns:services="clr-namespace:Squash_Web_Browser.Services"
                 x:DataType="vm:MainWindowViewModel"
                 mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
                 x:Class="Squash_Web_Browser.MainWindow"
@@ -98,10 +99,15 @@
                             <ScrollViewer Grid.Row="1">
                                 <ItemsControl ItemsSource="{Binding Links}">
                                     <ItemsControl.ItemTemplate>
-                                        <DataTemplate x:DataType="vm:ParsedLink">
+                                        <DataTemplate x:DataType="services:ParsedLink">
+                                            
                                             <StackPanel Orientation="Horizontal" Spacing="8" Margin="2,2,2,2">
                                                 <TextBlock Text="•"/>
-                                                <TextBlock Text="{Binding Text}" FontWeight="SemiBold"/>
+                                                <Button Command="{Binding $parent[Window].DataContext.LinkClickCommand}"
+                                                        CommandParameter="{Binding .}"
+                                                        Background="Transparent" BorderThickness="0" Padding="0" Cursor="Hand">
+                                                    <TextBlock Text="{Binding Text}" FontWeight="SemiBold" Foreground="#2196F3" TextDecorations="Underline"/>
+                                                </Button>
                                                 <TextBlock Text="→" Margin="8,0,0,0"/>
                                                 <TextBlock Text="{Binding Href}" Foreground="#5AA9FF" TextDecorations="Underline"/>
                                             </StackPanel>
