@@ -1,7 +1,8 @@
-
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Data.Sqlite;
+using Squash_Web_Browser.Models;
 
 namespace Squash_Web_Browser.Services;
 
@@ -9,65 +10,19 @@ public interface IStorageService
 {
 	void SaveLastUrl(string url);
 	string? LoadLastUrl();
-	void SaveBookmark(string name, string url); // placeholder for saving a bookmark
+	void SaveBookmark(string name, string url);
+	void DeleteBookmark(int id);
+	List<Bookmark> LoadBookmarks();
+	
 }
 
 public sealed class StorageService : IStorageService
 {
+
 	private readonly string _dbFile;
 	public StorageService(string dbFile = "browserdata.db")
 	{
 		_dbFile = dbFile;
-	}
-
-	public void SaveBookmark(string name, string url)
-	{
-		// Placeholder: just print to console
-		Console.WriteLine($"Bookmark saved: Name={name}, URL={url}");
-
-		// Save to database
-		if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(url)) return;
-		try
-		{
-			using var conn = new SqliteConnection($"Data Source={_dbFile}");
-			conn.Open();
-			using var cmd = conn.CreateCommand();
-			cmd.CommandText = @"CREATE TABLE IF NOT EXISTS Bookmarks (Id INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT, Url TEXT);";
-			cmd.ExecuteNonQuery();
-			cmd.CommandText = @"INSERT INTO Bookmarks (Name, Url) VALUES ($name, $url);";
-			cmd.Parameters.AddWithValue("$name", name);
-			cmd.Parameters.AddWithValue("$url", url);
-			cmd.ExecuteNonQuery();
-			LoadAllBookmarks(); // Refresh bookmarks after adding a new one
-		}
-		catch
-		{
-			// swallow, caller can show generic error if needed
-		}
-	}
-
-	public List<(string Name, string Url)> LoadAllBookmarks()
-	{
-		var bookmarks = new List<(string Name, string Url)>();
-		try
-		{
-			using var conn = new SqliteConnection($"Data Source={_dbFile}");
-			conn.Open();
-			using var cmd = conn.CreateCommand();
-			cmd.CommandText = @"SELECT Name, Url FROM Bookmarks;";
-			using var reader = cmd.ExecuteReader();
-			while (reader.Read())
-			{
-				var name = reader.GetString(0);
-				var url = reader.GetString(1);
-				bookmarks.Add((name, url));
-			}
-		}
-		catch
-		{
-			// swallow, caller can show generic error if needed
-		}
-		return bookmarks;
 	}
 
 	public void SaveLastUrl(string url)
@@ -102,7 +57,93 @@ public sealed class StorageService : IStorageService
 			if (reader.Read())
 				return reader.GetString(0);
 		}
-		catch { }
+		catch
+		{ 
+			// swallow, caller can show generic error if needed
+		}
 		return null;
 	}
+
+	public void SaveBookmark(string name, string url)
+	{
+		if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(url)) return;
+
+		try
+		{
+			// Ensure the Bookmarks table exists
+			using var conn = new SqliteConnection($"Data Source={_dbFile}");
+			conn.Open();
+			using var cmd = conn.CreateCommand();
+			cmd.CommandText = @"CREATE TABLE IF NOT EXISTS Bookmarks (Id INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT, Url TEXT);";
+			cmd.ExecuteNonQuery();
+
+			// Check if a bookmark with the same name and url already exists using LINQ
+			var existing = LoadBookmarks()
+				.Any(b => string.Equals(b.Name, name, StringComparison.OrdinalIgnoreCase) &&
+						  string.Equals(b.Url, url, StringComparison.OrdinalIgnoreCase));
+			if (existing)
+				return;
+
+			// Insert new bookmark
+			cmd.CommandText = @"INSERT INTO Bookmarks (Name, Url) VALUES ($name, $url);";
+			cmd.Parameters.AddWithValue("$name", name);
+			cmd.Parameters.AddWithValue("$url", url);
+			cmd.ExecuteNonQuery();
+		}
+		catch
+		{
+			// swallow, caller can show generic error if needed
+		}
+	}
+
+	public void DeleteBookmark(int id)
+	{
+		try
+		{
+			var bookmarks = LoadBookmarks();
+			var bookmarkToDelete = bookmarks.FirstOrDefault(b => b.Id == id);
+			if (bookmarkToDelete != null)
+			{
+				using var conn = new SqliteConnection($"Data Source={_dbFile}");
+				conn.Open();
+				using var cmd = conn.CreateCommand();
+				cmd.CommandText = @"DELETE FROM Bookmarks WHERE Id = $id;";
+				cmd.Parameters.AddWithValue("$id", id);
+				cmd.ExecuteNonQuery();
+			}
+		}
+		catch
+		{
+			// swallow, caller can show generic error if needed
+		}
+	}
+
+	public List<Bookmark> LoadBookmarks()
+	{
+		var bookmarks = new List<Bookmark>();
+		try
+		{
+			using var conn = new SqliteConnection($"Data Source={_dbFile}");
+			conn.Open();
+			using var cmd = conn.CreateCommand();
+			cmd.CommandText = @"SELECT Id, Name, Url FROM Bookmarks;";
+			using var reader = cmd.ExecuteReader();
+			while (reader.Read())
+			{
+				bookmarks.Add(new Bookmark
+				{
+					Id = reader.GetInt32(0),
+					Name = reader.GetString(1),
+					Url = reader.GetString(2)
+				});
+			}
+		}
+		catch
+		{
+			// swallow, caller can show generic error if needed
+		}
+		return bookmarks;
+	}
+
+	
 }

@@ -1,24 +1,25 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:models="using:Squash_Web_Browser.Models"
              x:Class="Squash_Web_Browser.Controls.BookmarksPanel">
   <DockPanel>
     <!-- Add Bookmark Section -->
     <StackPanel Orientation="Vertical">
-      <StackPanel Orientation="Horizontal" Margin="8,0,8,8" Spacing="4">
-        <TextBox x:Name="NameTextBox" Width="120" Height="30" Watermark="Name (placeholder)" />
-        <TextBox x:Name="UrlTextBox" Width="200" Height="30" Watermark="URL (placeholder)" />
+      <StackPanel Orientation="Horizontal" Margin="8,0,8,8" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
+        <TextBox x:Name="NameTextBox" Width="80" Height="30" Watermark="Name" />
+        <TextBox x:Name="UrlTextBox" Width="200" Height="30" Watermark="URL" />
         <Button x:Name="AddBookmarkButton" Content="Add" Width="60" />
       </StackPanel>
-       <TextBlock Text="(Click a bookmark name to open it - placeholder)" FontStyle="Italic" Margin="8,4,8,0" FontSize="11" />
+       <TextBlock Text="(Click a bookmark name to open it)" FontStyle="Italic" Margin="8,4,8,0" FontSize="11" />
 
        <ListBox Name="BookmarksList" Margin="8" SelectionMode="Single">
       <ListBox.ItemTemplate>
-        <DataTemplate>
+        <DataTemplate DataType="models:Bookmark">
           <StackPanel Orientation="Horizontal" Spacing="4">
-            <TextBlock Text="[Name] (placeholder)" Width="120" VerticalAlignment="Center" />
-            <TextBlock Text="[URL] (placeholder)" Width="200" VerticalAlignment="Center" />
-            <Button Content="Edit" Width="50" />
-            <Button Content="Delete" Width="60" />
+            <TextBlock Text="{Binding Name}" Width="80" VerticalAlignment="Center" PointerPressed="Bookmark_PointerPressed" />
+            <TextBlock Text="{Binding Url}" Width="180" VerticalAlignment="Center" />
+            <Button Content="Edit ✏️" Width="60" />
+            <Button Content="Delete 🗑️" Width="60" Click="DeleteBookmark_Click" />
           </StackPanel>
         </DataTemplate>
       </ListBox.ItemTemplate>
