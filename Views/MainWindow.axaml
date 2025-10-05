@@ -10,6 +10,7 @@
                 x:Class="Squash_Web_Browser.MainWindow"
                 Title="Squash Browser"
                 MinWidth="800" MinHeight="500">
+                
     <DockPanel>
         <!-- Menu Bar Placeholder -->
         <!-- <Menu DockPanel.Dock="Top">
