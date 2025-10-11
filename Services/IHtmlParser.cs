@@ -5,7 +5,7 @@ namespace Squash_Web_Browser.Services;
 
 public interface IHtmlParser
 {
-	ParseResult Parse(string html, int linkLimit = 200);
+	ParseResult Parse(string html, int linkLimit = 5);
 }
 
 public sealed class ParseResult
@@ -16,7 +16,7 @@ public sealed class ParseResult
 
 public sealed class HtmlParser : IHtmlParser
 {
-	public ParseResult Parse(string html, int linkLimit = 200)
+	public ParseResult Parse(string html, int linkLimit = 5)
 	{
 		var result = new ParseResult();
 		if (string.IsNullOrWhiteSpace(html)) return result;

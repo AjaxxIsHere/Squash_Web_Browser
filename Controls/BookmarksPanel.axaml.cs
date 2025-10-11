@@ -37,6 +37,45 @@ public partial class BookmarksPanel : UserControl
         }
     }
 
+    private void EditBookmark_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        // Prevent editing if textboxes have content
+        if (!string.IsNullOrWhiteSpace(_nameTextBox?.Text) || !string.IsNullOrWhiteSpace(_urlTextBox?.Text))
+        {
+            return;
+        }
+
+        if (sender is Button { DataContext: Bookmark bookmark })
+        {
+            // Load bookmark data into textboxes
+            if (_nameTextBox != null) _nameTextBox.Text = bookmark.Name;
+            if (_urlTextBox != null) _urlTextBox.Text = bookmark.Url;
+
+            // Delete from DB
+            _storageService.DeleteBookmark(bookmark.Id);
+
+            // Refresh the list
+            LoadBookmarks();
+        }
+    }
+    
+    private void InputFields_OnTextChanged(object? sender, TextChangedEventArgs e)
+    {
+        var hasText = !string.IsNullOrWhiteSpace(_nameTextBox?.Text) || !string.IsNullOrWhiteSpace(_urlTextBox?.Text);
+        if (_addButton != null)
+        {
+            _addButton.IsEnabled = hasText && IsValidUrl(_urlTextBox?.Text ?? string.Empty);
+        }
+
+        if (_bookmarksListBox?.Items == null) return;
+        
+        // This is a bit tricky in Avalonia without direct access to the generated containers.
+        // A common approach is to use a ViewModel and bind the IsEnabled property.
+        // For this code-behind approach, we'll just disable adding if text exists.
+        // Disabling edit buttons dynamically from here is complex.
+        // A simpler UX is to just not let them edit if the fields are full. The check at the start of EditBookmark_Click handles this.
+    }
+
 
     private void LoadBookmarks()
     {

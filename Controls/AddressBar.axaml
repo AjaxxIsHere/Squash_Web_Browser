@@ -7,8 +7,8 @@
     <Button Content="☰" Width="40" Height="40" Margin="4,0,0,0" Name="SidebarToggleButton" ToolTip.Tip="Toggle Sidebar" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
     <Separator Width="8"/>
     <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" Spacing="4">
-      <Button Content="◀" Name="BackButton" ToolTip.Tip="Back" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="40" Height="40"/>
-      <Button Content="▶" Name="ForwardButton" ToolTip.Tip="Forward" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="40" Height="40"/>
+      <Button Content="◀" Name="BackButton" ToolTip.Tip="Back" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="40" Height="40" Command="{Binding BackButtonCommand}"/>
+      <Button Content="▶" Name="ForwardButton" ToolTip.Tip="Forward" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="40" Height="40" Command="{Binding ForwardButtonCommand}"/>
       <Button Content="⟳" Name="ReloadButton" ToolTip.Tip="Reload" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="40" Height="40"/>
       <Button Content="🏠" Name="HomeButton" ToolTip.Tip="Home" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="40" Height="40"/>
     </StackPanel>
@@ -23,7 +23,5 @@
     <Separator Width="32"/>
   <Button Content="Go" Width="50" Height="40" Margin="4,0,0,0" Name="GoButton" Command="{Binding FetchHtmlCommand}" HorizontalAlignment="Center" VerticalContentAlignment="Center" />
     <Button Content="HTML" Width="60" Height="40" Margin="4,0,0,0" ToolTip.Tip="Toggle Raw HTML" Command="{Binding ToggleHtmlCommand}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
-    <Button Content="★" Width="40" Height="40" Margin="4,0,0,0" Name="BookmarkButton" ToolTip.Tip="Add Bookmark" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
-
   </DockPanel>
 </UserControl>

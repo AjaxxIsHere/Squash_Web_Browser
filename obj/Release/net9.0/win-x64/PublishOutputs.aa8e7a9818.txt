@@ -1,0 +1,6 @@
+/home/ajaz/Desktop/Heriot Watt Work/Computer Science (Year 4)/Semester 1/Industrial Programming (F20SC)/Squash_Web_Browser/bin/Release/net9.0/win-x64/publish/Squash_Web_Browser.pdb
+/home/ajaz/Desktop/Heriot Watt Work/Computer Science (Year 4)/Semester 1/Industrial Programming (F20SC)/Squash_Web_Browser/bin/Release/net9.0/win-x64/publish/av_libglesv2.dll
+/home/ajaz/Desktop/Heriot Watt Work/Computer Science (Year 4)/Semester 1/Industrial Programming (F20SC)/Squash_Web_Browser/bin/Release/net9.0/win-x64/publish/libHarfBuzzSharp.dll
+/home/ajaz/Desktop/Heriot Watt Work/Computer Science (Year 4)/Semester 1/Industrial Programming (F20SC)/Squash_Web_Browser/bin/Release/net9.0/win-x64/publish/libSkiaSharp.dll
+/home/ajaz/Desktop/Heriot Watt Work/Computer Science (Year 4)/Semester 1/Industrial Programming (F20SC)/Squash_Web_Browser/bin/Release/net9.0/win-x64/publish/e_sqlite3.dll
+/home/ajaz/Desktop/Heriot Watt Work/Computer Science (Year 4)/Semester 1/Industrial Programming (F20SC)/Squash_Web_Browser/bin/Release/net9.0/win-x64/publish/Squash_Web_Browser.exe

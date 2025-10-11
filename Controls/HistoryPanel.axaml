@@ -1,8 +1,20 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Squash_Web_Browser.ViewModels"
+             xmlns:models="clr-namespace:Squash_Web_Browser.Models"
+             x:DataType="vm:MainWindowViewModel"
              x:Class="Squash_Web_Browser.Controls.HistoryPanel">
   <DockPanel>
     <TextBlock Text="History" FontSize="18" FontWeight="Bold" Margin="8" />
-    <ListBox Name="HistoryList" Margin="8" />
+    <ListBox Name="HistoryList" Margin="8">
+      <ListBox.ItemTemplate>
+        <DataTemplate x:DataType="models:History">
+          <StackPanel Orientation="Vertical" Spacing="4">
+            <TextBlock Text="{Binding Url}" FontWeight="Medium" />
+            <TextBlock Text="{Binding Timestamp}" FontSize="10" Foreground="Gray" />
+          </StackPanel>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
   </DockPanel>
 </UserControl>

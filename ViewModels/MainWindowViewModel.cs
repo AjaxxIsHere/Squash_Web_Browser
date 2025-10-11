@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using System.Collections.ObjectModel;
@@ -28,6 +29,9 @@ public class MainWindowViewModel : ViewModelBase
 
     // controls visibility of raw HTML panel
     private bool _showHtml = true;
+
+    private readonly List<string> _navigationStack = new();
+    private int _navigationIndex = -1;
 
     private readonly IWebService _webService;
     private readonly IStorageService _settingsService;
@@ -87,7 +91,6 @@ public class MainWindowViewModel : ViewModelBase
     }
 
     // Indicates if a fetch operation is in progress
-
     public bool IsBusy
     {
         get => _isBusy;
@@ -99,6 +102,8 @@ public class MainWindowViewModel : ViewModelBase
                 RaisePropertyChanged();
                 // also update command can-execute state
                 (FetchHtmlCommand as AsyncRelayCommand)?.RaiseCanExecuteChanged();
+                (BackButtonCommand as AsyncRelayCommand)?.RaiseCanExecuteChanged();
+                (ForwardButtonCommand as AsyncRelayCommand)?.RaiseCanExecuteChanged();
             }
         }
     }
@@ -107,6 +112,8 @@ public class MainWindowViewModel : ViewModelBase
     public ICommand FetchHtmlCommand { get; }
     public ICommand ToggleHtmlCommand { get; }
     public ICommand LinkClickCommand { get; }
+    public ICommand BackButtonCommand { get; }
+    public ICommand ForwardButtonCommand { get; }
 
     public MainWindowViewModel()
         : this(new WebService(), new StorageService(DbFile), new HtmlParser()) { }
@@ -117,7 +124,7 @@ public class MainWindowViewModel : ViewModelBase
         _settingsService = settingsService;
         _htmlParser = htmlParser;
 
-        FetchHtmlCommand = new AsyncRelayCommand(FetchHtmlAsync, () => !IsBusy);
+        FetchHtmlCommand = new AsyncRelayCommand(() => FetchHtmlAsync(true), () => !IsBusy);
         ToggleHtmlCommand = new RelayCommand(() => ShowHtml = !ShowHtml);
         LinkClickCommand = new RelayCommand((object? param) =>
         {
@@ -127,6 +134,9 @@ public class MainWindowViewModel : ViewModelBase
                 (FetchHtmlCommand as AsyncRelayCommand)?.Execute(null);
             }
         });
+
+        BackButtonCommand = new AsyncRelayCommand(GoBackAsync, CanGoBack);
+        ForwardButtonCommand = new AsyncRelayCommand(GoForwardAsync, CanGoForward);
 
         var lastUrl = _settingsService.LoadLastUrl();
         if (!string.IsNullOrWhiteSpace(lastUrl))
@@ -171,8 +181,31 @@ public class MainWindowViewModel : ViewModelBase
     public int LinkCount => Links.Count;
 
 
+    private bool CanGoBack() => _navigationIndex > 0;
+    private bool CanGoForward() => _navigationIndex < _navigationStack.Count - 1;
+
+    private async Task GoBackAsync()
+    {
+        if (CanGoBack())
+        {
+            _navigationIndex--;
+            Address = _navigationStack[_navigationIndex];
+            await FetchHtmlAsync(false);
+        }
+    }
+
+    private async Task GoForwardAsync()
+    {
+        if (CanGoForward())
+        {
+            _navigationIndex++;
+            Address = _navigationStack[_navigationIndex];
+            await FetchHtmlAsync(false);
+        }
+    }
+
     // Fetches the HTML from the specified URL asynchronously
-    private async Task FetchHtmlAsync()
+    private async Task FetchHtmlAsync(bool addToHistory)
     {
         if (string.IsNullOrWhiteSpace(Address))
         {
@@ -184,6 +217,17 @@ public class MainWindowViewModel : ViewModelBase
         HtmlSource = string.Empty;
         try
         {
+            if (addToHistory)
+            {
+                if (_navigationIndex < _navigationStack.Count - 1)
+                {
+                    _navigationStack.RemoveRange(_navigationIndex + 1, _navigationStack.Count - (_navigationIndex + 1));
+                }
+                _navigationStack.Add(Address);
+                _navigationIndex = _navigationStack.Count - 1;
+            }
+            
+            _settingsService.SaveHistory(Address);
             var result = await _webService.FetchHtmlAsync(Address);
             HtmlSource = result.Html;
             Status = result.StatusMessage;

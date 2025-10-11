@@ -12,55 +12,23 @@
                 MinWidth="800" MinHeight="500">
                 
     <DockPanel>
-        <!-- Menu Bar Placeholder -->
-        <!-- <Menu DockPanel.Dock="Top">
-            <MenuItem Header="File">
-                <MenuItem Header="New Tab" />
-                <MenuItem Header="New Window" />
-                <MenuItem Header="Open File..." />
-                <Separator />
-                <MenuItem Header="Exit" />
-            </MenuItem>
-            <MenuItem Header="View">
-                <MenuItem Header="Toggle Sidebar" />
-                <MenuItem Header="Zoom In" />
-                <MenuItem Header="Zoom Out" />
-                <MenuItem Header="Reset Zoom" />
-            </MenuItem>
-            <MenuItem Header="History">
-                <MenuItem Header="Show All History" />
-                <MenuItem Header="Clear Recent History" />
-            </MenuItem>
-            <MenuItem Header="Bookmarks">
-                <MenuItem Header="Bookmark This Page" />
-                <MenuItem Header="Show All Bookmarks" />
-            </MenuItem>
-            <MenuItem Header="Tools">
-                <MenuItem Header="Downloads" />
-                <MenuItem Header="Settings" />
-            </MenuItem>
-            <MenuItem Header="Help">
-                <MenuItem Header="About" />
-            </MenuItem>
-        </Menu> -->
-
-    <!-- Address bar (now spans full width) -->
+    <!-- Address bar (spans full width) -->
     <controls:AddressBar Name="AddressBar" DockPanel.Dock="Top" />
 
         <!-- Main content split: sidebar + web content -->
         <Grid Name="MainGrid" ColumnDefinitions="500,*" RowDefinitions="*">
             <!-- Sidebar with tabbed panels (bookmarks/history/downloads/settings) -->
             <TabControl Margin="4" Grid.Column="0" Name="SidebarTabControl">
-                <TabItem Header="Bookmarks">
+                <TabItem Header="Bookmarks" FontSize="16">
                     <controls:BookmarksPanel />
                 </TabItem>
-                <TabItem Header="History">
+                <TabItem Header="History" FontSize="16">
                     <controls:HistoryPanel />
                 </TabItem>
-                <TabItem Header="Downloads">
+                <TabItem Header="Downloads" FontSize="16">
                     <controls:DownloadsPanel />
                 </TabItem>
-                <TabItem Header="Settings">
+                <TabItem Header="Settings" FontSize="16">
                     <controls:SettingsPanel />
                 </TabItem>
             </TabControl>

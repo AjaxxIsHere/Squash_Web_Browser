@@ -6,9 +6,9 @@
     <!-- Add Bookmark Section -->
     <StackPanel Orientation="Vertical">
       <StackPanel Orientation="Horizontal" Margin="8,0,8,8" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
-        <TextBox x:Name="NameTextBox" Width="80" Height="30" Watermark="Name" />
-        <TextBox x:Name="UrlTextBox" Width="200" Height="30" Watermark="URL" />
-        <Button x:Name="AddBookmarkButton" Content="Add" Width="60" />
+        <TextBox x:Name="NameTextBox" Width="80" Height="30" Watermark="Name" TextChanged="InputFields_OnTextChanged" />
+        <TextBox x:Name="UrlTextBox" Width="200" Height="30" Watermark="URL" TextChanged="InputFields_OnTextChanged" />
+        <Button x:Name="AddBookmarkButton" Content="Add" Width="60" IsEnabled="False"/>
       </StackPanel>
        <TextBlock Text="(Click a bookmark name to open it)" FontStyle="Italic" Margin="8,4,8,0" FontSize="11" />
 
@@ -18,7 +18,7 @@
           <StackPanel Orientation="Horizontal" Spacing="4">
             <TextBlock Text="{Binding Name}" Width="80" VerticalAlignment="Center" PointerPressed="Bookmark_PointerPressed" />
             <TextBlock Text="{Binding Url}" Width="180" VerticalAlignment="Center" />
-            <Button Content="Edit ✏️" Width="60" />
+            <Button Content="Edit ✏️" Width="60" Click="EditBookmark_Click" />
             <Button Content="Delete 🗑️" Width="60" Click="DeleteBookmark_Click" />
           </StackPanel>
         </DataTemplate>

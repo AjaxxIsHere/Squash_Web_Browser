@@ -13,6 +13,8 @@ public interface IStorageService
 	void SaveBookmark(string name, string url);
 	void DeleteBookmark(int id);
 	List<Bookmark> LoadBookmarks();
+	void SaveHistory(string url);
+	List<History> LoadHistory();
 	
 }
 
@@ -143,6 +145,73 @@ public sealed class StorageService : IStorageService
 			// swallow, caller can show generic error if needed
 		}
 		return bookmarks;
+	}
+
+	public void SaveHistory(string url)
+	{
+		if (string.IsNullOrWhiteSpace(url)) return;
+
+		try
+		{
+			using var conn = new SqliteConnection($"Data Source={_dbFile}");
+			conn.Open();
+			using var cmd = conn.CreateCommand();
+			cmd.CommandText = @"CREATE TABLE IF NOT EXISTS History (Id INTEGER PRIMARY KEY AUTOINCREMENT, Url TEXT, Timestamp DATETIME);";
+			cmd.ExecuteNonQuery();
+			
+			cmd.CommandText = @"SELECT Url FROM History ORDER BY Timestamp DESC LIMIT 1;";
+			var lastUrl = cmd.ExecuteScalar() as string;
+
+			if (string.Equals(lastUrl, url, StringComparison.OrdinalIgnoreCase))
+			{
+				return;
+			}
+
+			cmd.CommandText = @"INSERT INTO History (Url, Timestamp) VALUES ($url, $timestamp);";
+			cmd.Parameters.AddWithValue("$url", url);
+			cmd.Parameters.AddWithValue("$timestamp", DateTime.Now);
+			cmd.ExecuteNonQuery();
+
+			cmd.CommandText = @"SELECT COUNT(*) FROM History;";
+			var count = Convert.ToInt64(cmd.ExecuteScalar());
+
+			if (count > 10)
+			{
+				cmd.CommandText = @"DELETE FROM History WHERE Id IN (SELECT Id FROM History ORDER BY Timestamp ASC LIMIT 1);";
+				cmd.ExecuteNonQuery();
+			}
+		}
+		catch
+		{
+			// swallow
+		}
+	}
+
+	public List<History> LoadHistory()
+	{
+		var history = new List<History>();
+		try
+		{
+			using var conn = new SqliteConnection($"Data Source={_dbFile}");
+			conn.Open();
+			using var cmd = conn.CreateCommand();
+			cmd.CommandText = @"SELECT Id, Url, Timestamp FROM History ORDER BY Timestamp DESC;";
+			using var reader = cmd.ExecuteReader();
+			while (reader.Read())
+			{
+				history.Add(new History
+				{
+					Id = reader.GetInt32(0),
+					Url = reader.GetString(1),
+					Timestamp = reader.GetDateTime(2)
+				});
+			}
+		}
+		catch
+		{
+			// swallow
+		}
+		return history;
 	}
 
 	
