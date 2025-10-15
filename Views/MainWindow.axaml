@@ -25,8 +25,8 @@
                 <TabItem Header="History" FontSize="16">
                     <controls:HistoryPanel />
                 </TabItem>
-                <TabItem Header="Downloads" FontSize="16">
-                    <controls:DownloadsPanel />
+                <TabItem Header="Edit HomePage" FontSize="16">
+                    <controls:EditHomePagePanel Name="EditHomePagePanel" />
                 </TabItem>
                 <TabItem Header="Settings" FontSize="16">
                     <controls:SettingsPanel />

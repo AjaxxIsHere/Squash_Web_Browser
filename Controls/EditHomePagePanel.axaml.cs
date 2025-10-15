@@ -2,9 +2,9 @@ using Avalonia.Controls;
 
 namespace Squash_Web_Browser.Controls;
 
-public partial class DownloadsPanel : UserControl
+public partial class EditHomePagePanel : UserControl
 {
-    public DownloadsPanel()
+    public EditHomePagePanel()
     {
         InitializeComponent();
     }

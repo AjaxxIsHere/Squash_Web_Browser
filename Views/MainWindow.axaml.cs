@@ -17,11 +17,18 @@ public partial class MainWindow : Window
         var addressBar = this.FindControl<AddressBar>("AddressBar");
         if (addressBar != null)
         {
-            var sidebarToggleButton = addressBar.FindControl<Button>("SidebarToggleButton");
-            if (sidebarToggleButton != null)
+            addressBar.DataContext = DataContext;
+            var toggleButton = addressBar.FindControl<Button>("SidebarToggleButton");
+            if (toggleButton != null)
             {
-                sidebarToggleButton.Click += ToggleSidebar;
+                toggleButton.Click += ToggleSidebar;
             }
+        }
+
+        var editHomePagePanel = this.FindControl<EditHomePagePanel>("EditHomePagePanel");
+        if (editHomePagePanel != null)
+        {
+            editHomePagePanel.DataContext = DataContext;
         }
     }
 

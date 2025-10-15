@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "pxf7rW0k92g=",
+  "dgSpecHash": "p5OYU+BkQxk=",
   "success": true,
   "projectFilePath": "/home/ajaz/Desktop/Heriot Watt Work/Computer Science (Year 4)/Semester 1/Industrial Programming (F20SC)/Squash_Web_Browser/Squash_Web_Browser.csproj",
   "expectedPackageFiles": [
@@ -19,6 +19,7 @@
     "/home/ajaz/.nuget/packages/avalonia.themes.simple/11.3.6/avalonia.themes.simple.11.3.6.nupkg.sha512",
     "/home/ajaz/.nuget/packages/avalonia.win32/11.3.6/avalonia.win32.11.3.6.nupkg.sha512",
     "/home/ajaz/.nuget/packages/avalonia.x11/11.3.6/avalonia.x11.11.3.6.nupkg.sha512",
+    "/home/ajaz/.nuget/packages/communitytoolkit.mvvm/8.4.0/communitytoolkit.mvvm.8.4.0.nupkg.sha512",
     "/home/ajaz/.nuget/packages/harfbuzzsharp/8.3.1.1/harfbuzzsharp.8.3.1.1.nupkg.sha512",
     "/home/ajaz/.nuget/packages/harfbuzzsharp.nativeassets.linux/8.3.1.1/harfbuzzsharp.nativeassets.linux.8.3.1.1.nupkg.sha512",
     "/home/ajaz/.nuget/packages/harfbuzzsharp.nativeassets.macos/8.3.1.1/harfbuzzsharp.nativeassets.macos.8.3.1.1.nupkg.sha512",

@@ -10,7 +10,7 @@
       <Button Content="◀" Name="BackButton" ToolTip.Tip="Back" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="40" Height="40" Command="{Binding BackButtonCommand}"/>
       <Button Content="▶" Name="ForwardButton" ToolTip.Tip="Forward" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="40" Height="40" Command="{Binding ForwardButtonCommand}"/>
       <Button Content="⟳" Name="ReloadButton" ToolTip.Tip="Reload" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="40" Height="40"/>
-      <Button Content="🏠" Name="HomeButton" ToolTip.Tip="Home" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="40" Height="40"/>
+      <Button Content="🏠" Name="HomeButton" ToolTip.Tip="Home" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="40" Height="40" Command="{Binding HomeButtonCommand}"/>
     </StackPanel>
     <!-- Add spacing here -->
     <Separator Width="32"/>

@@ -1,0 +1,11 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Squash_Web_Browser.ViewModels"
+             x:DataType="vm:MainWindowViewModel"
+             x:Class="Squash_Web_Browser.Controls.EditHomePagePanel">
+  <StackPanel Spacing="8" Margin="8">
+    <TextBlock Text="Edit HomePage" FontSize="18" FontWeight="Bold" />
+    <TextBox Name="HomePageTextBox" Text="{Binding HomePageUrl}" Watermark="Enter new home page URL" />
+    <Button Name="SaveButton" Content="Save" Command="{Binding SaveHomePageCommand}" />
+  </StackPanel>
+</UserControl>

@@ -64,6 +64,10 @@
               "target": "Package",
               "version": "[11.3.6, )"
             },
+            "CommunityToolkit.Mvvm": {
+              "target": "Package",
+              "version": "[8.4.0, )"
+            },
             "HtmlAgilityPack": {
               "target": "Package",
               "version": "[1.12.3, )"

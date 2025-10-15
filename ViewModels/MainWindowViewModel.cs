@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using System.Collections.ObjectModel;
+using System.Linq;
 using Squash_Web_Browser.Services;
+using Squash_Web_Browser.Models;
 
 namespace Squash_Web_Browser.ViewModels;
 
@@ -11,8 +13,7 @@ public class MainWindowViewModel : ViewModelBase
 {
     public static string Title => "Squash Browser";
 
-    // default example URL
-    private string _address = "https://www.hw.ac.uk/dubai";
+    private string _address;
     private const string DbFile = "browserdata.db"; // still referenced by default settings service
 
     // holds fetched HTML
@@ -23,6 +24,8 @@ public class MainWindowViewModel : ViewModelBase
 
     // indicates fetch in progress            
     private bool _isBusy;
+
+    private string _homePageUrl = string.Empty;
 
     // parsed <title>               
     private string _pageTitle = string.Empty;
@@ -44,6 +47,9 @@ public class MainWindowViewModel : ViewModelBase
         get;
     } = [];
 
+    // history
+    public ObservableCollection<History> History { get; } = [];
+
     // The URL entered by the user
     public string Address
     {
@@ -56,6 +62,20 @@ public class MainWindowViewModel : ViewModelBase
                 _address = value;
                 RaisePropertyChanged();
                 SaveLastUrl(_address);
+            }
+        }
+    }
+
+    // The URL for the home page
+    public string HomePageUrl
+    {
+        get => _homePageUrl;
+        set
+        {
+            if (value != _homePageUrl)
+            {
+                _homePageUrl = value;
+                RaisePropertyChanged();
             }
         }
     }
@@ -114,6 +134,13 @@ public class MainWindowViewModel : ViewModelBase
     public ICommand LinkClickCommand { get; }
     public ICommand BackButtonCommand { get; }
     public ICommand ForwardButtonCommand { get; }
+    public ICommand HomeButtonCommand { get; }
+
+    // Command to save the home page URL
+    public ICommand SaveHomePageCommand { get; }
+
+    // Command to handle clicks on history items
+    public ICommand HistoryClickCommand { get; }
 
     public MainWindowViewModel()
         : this(new WebService(), new StorageService(DbFile), new HtmlParser()) { }
@@ -137,6 +164,33 @@ public class MainWindowViewModel : ViewModelBase
 
         BackButtonCommand = new AsyncRelayCommand(GoBackAsync, CanGoBack);
         ForwardButtonCommand = new AsyncRelayCommand(GoForwardAsync, CanGoForward);
+        HomeButtonCommand = new AsyncRelayCommand(GoHomeAsync);
+
+        SaveHomePageCommand = new RelayCommand(SaveHomePage);
+        HistoryClickCommand = new RelayCommand((object? param) =>
+        {
+            if (param is History historyItem && !string.IsNullOrWhiteSpace(historyItem.Url))
+            {
+                // If the clicked URL is the same as the current one, do nothing.
+                if (historyItem.Url == Address)
+                {
+                    return;
+                }
+                Address = historyItem.Url;
+                (FetchHtmlCommand as AsyncRelayCommand)?.Execute(null);
+            }
+        });
+
+        var homePageUrl = _settingsService.LoadHomePage();
+        if (string.IsNullOrWhiteSpace(homePageUrl))
+        {
+            homePageUrl = "https://hw.ac.uk";
+            _settingsService.SaveHomePage(homePageUrl);
+        }
+        _homePageUrl = homePageUrl;
+        RaisePropertyChanged(nameof(HomePageUrl));
+        _address = homePageUrl;
+        RaisePropertyChanged(nameof(Address));
 
         var lastUrl = _settingsService.LoadLastUrl();
         if (!string.IsNullOrWhiteSpace(lastUrl))
@@ -144,6 +198,25 @@ public class MainWindowViewModel : ViewModelBase
             _address = lastUrl;
             RaisePropertyChanged(nameof(Address));
         }
+
+        LoadHistory();
+    }
+
+    private async Task GoHomeAsync()
+    {
+        var homePageUrl = _settingsService.LoadHomePage();
+        if (!string.IsNullOrWhiteSpace(homePageUrl))
+        {
+            Address = homePageUrl;
+            await FetchHtmlAsync(true);
+        }
+    }
+
+    private void SaveHomePage()
+    {
+        _settingsService.SaveHomePage(HomePageUrl);
+        Address = HomePageUrl;
+        RaisePropertyChanged(nameof(Address));
     }
 
     private void SaveLastUrl(string url) => _settingsService.SaveLastUrl(url);
@@ -205,7 +278,7 @@ public class MainWindowViewModel : ViewModelBase
     }
 
     // Fetches the HTML from the specified URL asynchronously
-    private async Task FetchHtmlAsync(bool addToHistory)
+    private async Task FetchHtmlAsync(bool isNewNavigation)
     {
         if (string.IsNullOrWhiteSpace(Address))
         {
@@ -217,7 +290,7 @@ public class MainWindowViewModel : ViewModelBase
         HtmlSource = string.Empty;
         try
         {
-            if (addToHistory)
+            if (isNewNavigation)
             {
                 if (_navigationIndex < _navigationStack.Count - 1)
                 {
@@ -225,9 +298,16 @@ public class MainWindowViewModel : ViewModelBase
                 }
                 _navigationStack.Add(Address);
                 _navigationIndex = _navigationStack.Count - 1;
+                
+                // Prevent adding consecutive duplicates to history
+                var lastHistoryItem = History.FirstOrDefault();
+                if (lastHistoryItem == null || lastHistoryItem.Url != Address)
+                {
+                    _settingsService.SaveHistory(Address);
+                    LoadHistory();
+                }
             }
             
-            _settingsService.SaveHistory(Address);
             var result = await _webService.FetchHtmlAsync(Address);
             HtmlSource = result.Html;
             Status = result.StatusMessage;
@@ -244,6 +324,22 @@ public class MainWindowViewModel : ViewModelBase
         {
             IsBusy = false;
         }
+    }
+
+    private void LoadHistory()
+    {
+        var history = _settingsService.LoadHistory();
+        
+        // To prevent UI exceptions, update the collection on the UI thread
+        // and do it in a way that avoids race conditions with selection.
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            History.Clear();
+            foreach (var item in history)
+            {
+                History.Add(item);
+            }
+        });
     }
 
     // Clears parsed state

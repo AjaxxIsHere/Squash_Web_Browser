@@ -8,6 +8,8 @@ namespace Squash_Web_Browser.Services;
 
 public interface IStorageService
 {
+	void SaveHomePage(string url);
+	string? LoadHomePage();
 	void SaveLastUrl(string url);
 	string? LoadLastUrl();
 	void SaveBookmark(string name, string url);
@@ -15,7 +17,6 @@ public interface IStorageService
 	List<Bookmark> LoadBookmarks();
 	void SaveHistory(string url);
 	List<History> LoadHistory();
-	
 }
 
 public sealed class StorageService : IStorageService
@@ -158,28 +159,11 @@ public sealed class StorageService : IStorageService
 			using var cmd = conn.CreateCommand();
 			cmd.CommandText = @"CREATE TABLE IF NOT EXISTS History (Id INTEGER PRIMARY KEY AUTOINCREMENT, Url TEXT, Timestamp DATETIME);";
 			cmd.ExecuteNonQuery();
-			
-			cmd.CommandText = @"SELECT Url FROM History ORDER BY Timestamp DESC LIMIT 1;";
-			var lastUrl = cmd.ExecuteScalar() as string;
-
-			if (string.Equals(lastUrl, url, StringComparison.OrdinalIgnoreCase))
-			{
-				return;
-			}
 
 			cmd.CommandText = @"INSERT INTO History (Url, Timestamp) VALUES ($url, $timestamp);";
 			cmd.Parameters.AddWithValue("$url", url);
 			cmd.Parameters.AddWithValue("$timestamp", DateTime.Now);
 			cmd.ExecuteNonQuery();
-
-			cmd.CommandText = @"SELECT COUNT(*) FROM History;";
-			var count = Convert.ToInt64(cmd.ExecuteScalar());
-
-			if (count > 10)
-			{
-				cmd.CommandText = @"DELETE FROM History WHERE Id IN (SELECT Id FROM History ORDER BY Timestamp ASC LIMIT 1);";
-				cmd.ExecuteNonQuery();
-			}
 		}
 		catch
 		{
@@ -214,5 +198,42 @@ public sealed class StorageService : IStorageService
 		return history;
 	}
 
-	
+	public void SaveHomePage(string url)
+	{
+		if (string.IsNullOrWhiteSpace(url)) return;
+		try
+		{
+			using var conn = new SqliteConnection($"Data Source={_dbFile}");
+			conn.Open();
+			using var cmd = conn.CreateCommand();
+			cmd.CommandText = @"CREATE TABLE IF NOT EXISTS Settings (Key TEXT PRIMARY KEY, Value TEXT);";
+			cmd.ExecuteNonQuery();
+			cmd.CommandText = @"INSERT INTO Settings (Key, Value) VALUES ('HomePage', $url) ON CONFLICT(Key) DO UPDATE SET Value=$url;";
+			cmd.Parameters.AddWithValue("$url", url);
+			cmd.ExecuteNonQuery();
+		}
+		catch
+		{
+			// swallow, caller can show generic error if needed
+		}
+	}
+
+	public string? LoadHomePage()
+	{
+		try
+		{
+			using var conn = new SqliteConnection($"Data Source={_dbFile}");
+			conn.Open();
+			using var cmd = conn.CreateCommand();
+			cmd.CommandText = @"SELECT Value FROM Settings WHERE Key='HomePage' LIMIT 1;";
+			using var reader = cmd.ExecuteReader();
+			if (reader.Read())
+				return reader.GetString(0);
+		}
+		catch
+		{
+			// swallow, caller can show generic error if needed
+		}
+		return null;
+	}
 }
