@@ -1,56 +1,59 @@
-using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using System.Collections.ObjectModel;
-using System.Linq;
 using Squash_Web_Browser.Services;
 using Squash_Web_Browser.Models;
 
 namespace Squash_Web_Browser.ViewModels;
 
+/*
+Summary: This code defines the MainWindowViewModel class, which serves as the ViewModel for the main window of a web browser application. It manages the state and behavior of the UI, including fetching HTML content, parsing it, and handling navigation. Key features include:
+
+- Properties for the current URL, home page URL, HTML source, status messages, and parsed links.
+- Commands for fetching HTML, toggling HTML visibility, navigating back and forward, going to the home page, saving the home page URL, and handling history item clicks.
+- Integration with services for web requests, storage, HTML parsing, navigation, and history management.
+
+Methods include:
+- FetchHtmlAsync(bool isNewNavigation): Asynchronously fetches HTML content from the specified URL and updates the UI accordingly.
+- ParseHtml(string html, string baseUrl): Parses the fetched HTML to extract the page title and links.
+- ClearParsed(): Clears the parsed state when an error occurs or no HTML is available.
+- GoHomeAsync(), GoBackAsync(), GoForwardAsync(): Navigation methods to handle home, back, and forward actions.
+
+*/
 public class MainWindowViewModel : ViewModelBase
 {
-    public static string Title => "Squash Browser";
-
-    private string _address;
-    private const string DbFile = "browserdata.db"; // still referenced by default settings service
-
-    // holds fetched HTML
-    private string _htmlSrc = string.Empty;
-
-    // status messages (success/error/loading)
-    private string _status = "Idle";
-
-    // indicates fetch in progress            
-    private bool _isBusy;
-
-    private string _homePageUrl = string.Empty;
-
-    // parsed <title>               
-    private string _pageTitle = string.Empty;
-
-    // controls visibility of raw HTML panel
-    private bool _showHtml = true;
-
-    private readonly List<string> _navigationStack = new();
-    private int _navigationIndex = -1;
-
     private readonly IWebService _webService;
     private readonly IStorageService _settingsService;
     private readonly IHtmlParser _htmlParser;
+    private readonly INavService _navService;
+    private readonly IHistoryService _historyService;
 
-    // parsed links
+    // public static string Title => "Squash Browser"; // Application title
+    private string _address;                        // current URL
+    private const string DbFile = "browserdata.db"; // still referenced by default settings service
+    private string _htmlSrc = string.Empty;         // holds fetched HTML
+    private string _status = "Idle";                // status messages (success/error/loading)
+    private bool _isBusy;                           // indicates fetch in progress       
+    private string _homePageUrl = string.Empty;     // home page URL
+    private string _pageTitle = string.Empty;       // parsed <title>          
+    private bool _showHtml = true;                  // controls visibility of raw HTML panel
 
-    public ObservableCollection<ParsedLink> Links
-    {
-        get;
-    } = [];
+    // When to add an item to or remove an item from an ObservableCollection, it automatically notifies the user interface, which then updates itself to reflect the change.
+    public ObservableCollection<ParsedLink> Links { get; } = new();
+    public ObservableCollection<History> History { get; } = new();
+    public ObservableCollection<Bookmark> Bookmarks { get; } = new();
+    public ICommand FetchHtmlCommand { get; }
+    public ICommand ToggleHtmlCommand { get; }
+    public ICommand LinkClickCommand { get; }
+    public ICommand BackButtonCommand { get; }
+    public ICommand ForwardButtonCommand { get; }
+    public ICommand HomeButtonCommand { get; }
+    public ICommand SaveHomePageCommand { get; }
+    public ICommand HistoryClickCommand { get; }
+    public ICommand ShowBookmarkFlyoutCommand { get; }
+    public ICommand AddBookmarkCommand { get; }
+    public ICommand CancelBookmarkCommand { get; }
 
-    // history
-    public ObservableCollection<History> History { get; } = [];
-
-    // The URL entered by the user
     public string Address
     {
         get => _address;
@@ -128,28 +131,51 @@ public class MainWindowViewModel : ViewModelBase
         }
     }
 
-    // Command bound to the Go button / Enter key to fetch HTML
-    public ICommand FetchHtmlCommand { get; }
-    public ICommand ToggleHtmlCommand { get; }
-    public ICommand LinkClickCommand { get; }
-    public ICommand BackButtonCommand { get; }
-    public ICommand ForwardButtonCommand { get; }
-    public ICommand HomeButtonCommand { get; }
+    private string _newBookmarkName = string.Empty;
+    public string NewBookmarkName
+    {
+        get => _newBookmarkName;
+        set
+        {
+            if (value != _newBookmarkName)
+            {
+                _newBookmarkName = value;
+                RaisePropertyChanged();
+            }
+        }
+    }
+    private bool _isBookmarkFlyoutOpen;
+    public bool IsBookmarkFlyoutOpen
+    {
+        get => _isBookmarkFlyoutOpen;
+        set
+        {
+            if (value != _isBookmarkFlyoutOpen)
+            {
+                _isBookmarkFlyoutOpen = value;
+                RaisePropertyChanged();
+            }
+        }
+    }
 
-    // Command to save the home page URL
-    public ICommand SaveHomePageCommand { get; }
 
-    // Command to handle clicks on history items
-    public ICommand HistoryClickCommand { get; }
-
+    // Default constructor initializing with default services
     public MainWindowViewModel()
-        : this(new WebService(), new StorageService(DbFile), new HtmlParser()) { }
+        : this(new WebService(), new StorageService(DbFile), new HtmlParser(), new NavService(), null) { }
 
-    public MainWindowViewModel(IWebService webService, IStorageService settingsService, IHtmlParser htmlParser)
+
+    // Constructor with dependency injection for services
+    public MainWindowViewModel(IWebService webService, IStorageService settingsService, IHtmlParser htmlParser, INavService navService, IHistoryService? historyService = null)
     {
         _webService = webService;
         _settingsService = settingsService;
         _htmlParser = htmlParser;
+        _navService = navService;
+        _historyService = historyService ?? new HistoryService(_settingsService);
+
+        ShowBookmarkFlyoutCommand = new RelayCommand(ShowBookmarkFlyout);
+        AddBookmarkCommand = new RelayCommand(AddBookmark);
+        CancelBookmarkCommand = new RelayCommand(CancelBookmark);
 
         FetchHtmlCommand = new AsyncRelayCommand(() => FetchHtmlAsync(true), () => !IsBusy);
         ToggleHtmlCommand = new RelayCommand(() => ShowHtml = !ShowHtml);
@@ -162,8 +188,8 @@ public class MainWindowViewModel : ViewModelBase
             }
         });
 
-        BackButtonCommand = new AsyncRelayCommand(GoBackAsync, CanGoBack);
-        ForwardButtonCommand = new AsyncRelayCommand(GoForwardAsync, CanGoForward);
+        BackButtonCommand = new AsyncRelayCommand(GoBackAsync, () => _navService.CanGoBack());
+        ForwardButtonCommand = new AsyncRelayCommand(GoForwardAsync, () => _navService.CanGoForward());
         HomeButtonCommand = new AsyncRelayCommand(GoHomeAsync);
 
         SaveHomePageCommand = new RelayCommand(SaveHomePage);
@@ -171,11 +197,6 @@ public class MainWindowViewModel : ViewModelBase
         {
             if (param is History historyItem && !string.IsNullOrWhiteSpace(historyItem.Url))
             {
-                // If the clicked URL is the same as the current one, do nothing.
-                if (historyItem.Url == Address)
-                {
-                    return;
-                }
                 Address = historyItem.Url;
                 (FetchHtmlCommand as AsyncRelayCommand)?.Execute(null);
             }
@@ -200,6 +221,50 @@ public class MainWindowViewModel : ViewModelBase
         }
 
         LoadHistory();
+        LoadBookmarks();
+    }
+
+    private void CancelBookmark()
+    {
+        IsBookmarkFlyoutOpen = false;
+    }
+
+    private void AddBookmark()
+    {
+        if (string.IsNullOrWhiteSpace(NewBookmarkName) || string.IsNullOrWhiteSpace(Address))
+        {
+            Status = "Bookmark name and URL cannot be empty.";
+            return;
+        }
+        _settingsService.SaveBookmark(NewBookmarkName, Address);
+        Status = $"Bookmark '{NewBookmarkName}' added.";
+        NewBookmarkName = string.Empty;
+        IsBookmarkFlyoutOpen = false;
+        LoadBookmarks();
+    }
+
+    private void ShowBookmarkFlyout(object? obj)
+    {
+        if (string.IsNullOrWhiteSpace(Address))
+        {
+            Status = "Cannot bookmark an empty URL.";
+            return;
+        }
+        NewBookmarkName = PageTitle;
+        IsBookmarkFlyoutOpen = true;
+    }
+
+    private void LoadBookmarks()
+    {
+        var bookmarks = _settingsService.LoadBookmarks();
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            Bookmarks.Clear();
+            foreach (var item in bookmarks)
+            {
+                Bookmarks.Add(item);
+            }
+        });
     }
 
     private async Task GoHomeAsync()
@@ -250,29 +315,23 @@ public class MainWindowViewModel : ViewModelBase
     }
 
     // Number of parsed links
-
     public int LinkCount => Links.Count;
-
-
-    private bool CanGoBack() => _navigationIndex > 0;
-    private bool CanGoForward() => _navigationIndex < _navigationStack.Count - 1;
-
     private async Task GoBackAsync()
     {
-        if (CanGoBack())
+        var prev = _navService.GoBack();
+        if (prev != null)
         {
-            _navigationIndex--;
-            Address = _navigationStack[_navigationIndex];
+            Address = prev;
             await FetchHtmlAsync(false);
         }
     }
 
     private async Task GoForwardAsync()
     {
-        if (CanGoForward())
+        var next = _navService.GoForward();
+        if (next != null)
         {
-            _navigationIndex++;
-            Address = _navigationStack[_navigationIndex];
+            Address = next;
             await FetchHtmlAsync(false);
         }
     }
@@ -292,28 +351,17 @@ public class MainWindowViewModel : ViewModelBase
         {
             if (isNewNavigation)
             {
-                if (_navigationIndex < _navigationStack.Count - 1)
-                {
-                    _navigationStack.RemoveRange(_navigationIndex + 1, _navigationStack.Count - (_navigationIndex + 1));
-                }
-                _navigationStack.Add(Address);
-                _navigationIndex = _navigationStack.Count - 1;
-                
-                // Prevent adding consecutive duplicates to history
-                var lastHistoryItem = History.FirstOrDefault();
-                if (lastHistoryItem == null || lastHistoryItem.Url != Address)
-                {
-                    _settingsService.SaveHistory(Address);
-                    LoadHistory();
-                }
+                _navService.NavigateTo(Address);
+                _historyService.SaveHistory(Address);
+                LoadHistory();
             }
-            
+
             var result = await _webService.FetchHtmlAsync(Address);
             HtmlSource = result.Html;
             Status = result.StatusMessage;
             if (!string.IsNullOrWhiteSpace(result.Html))
             {
-                ParseHtml(result.Html);
+                ParseHtml(result.Html, Address);
             }
             else
             {
@@ -328,10 +376,7 @@ public class MainWindowViewModel : ViewModelBase
 
     private void LoadHistory()
     {
-        var history = _settingsService.LoadHistory();
-        
-        // To prevent UI exceptions, update the collection on the UI thread
-        // and do it in a way that avoids race conditions with selection.
+        var history = _historyService.LoadHistory();
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
             History.Clear();
@@ -342,8 +387,6 @@ public class MainWindowViewModel : ViewModelBase
         });
     }
 
-    // Clears parsed state
-    // For dummies: This is like resetting the "important stuff" when something goes wrong.
     private void ClearParsed()
     {
         PageTitle = string.Empty;
@@ -351,11 +394,9 @@ public class MainWindowViewModel : ViewModelBase
         RaisePropertyChanged(nameof(LinkCount));
     }
 
-    // Parses the HTML to extract <title> and <a href> links
-    // For dummies: This is like reading a webpage and picking out the title and all the links on it.
-    private void ParseHtml(string html)
+    private void ParseHtml(string html, string baseUrl)
     {
-        var parseResult = _htmlParser.Parse(html);
+        var parseResult = _htmlParser.Parse(html, baseUrl);
         PageTitle = parseResult.Title;
         Links.Clear();
         foreach (var l in parseResult.Links)
@@ -363,4 +404,3 @@ public class MainWindowViewModel : ViewModelBase
         RaisePropertyChanged(nameof(LinkCount));
     }
 }
-// ParsedLink, RelayCommand, AsyncRelayCommand moved to Services namespace file(s)

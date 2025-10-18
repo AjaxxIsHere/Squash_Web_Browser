@@ -8,9 +8,10 @@ namespace Squash_Web_Browser.Services;
 
 public interface IWebService
 {
-	Task<WebResult> FetchHtmlAsync(string url, CancellationToken cancellationToken = default);
+	Task<WebResult> FetchHtmlAsync(string url, CancellationToken cancellationToken = default); // Asynchronously fetches HTML content from the specified URL
 }
 
+// WebResult class which encapsulates the result of a web fetch operation, including success status, HTML content, status message, bytes loaded, and HTTP status code.
 public sealed class WebResult
 {
 	public bool IsSuccess { get; init; }
@@ -20,10 +21,20 @@ public sealed class WebResult
 	public int? StatusCode { get; init; }
 }
 
+
+/*
+Summary: This code defines a web service interface (IWebService) and its implementation (WebService) for fetching HTML content from a given URL. The WebService class uses HttpClient to perform HTTP GET requests and handle various scenarios such as time outs, network errors, and invalid URLs. Its methods include:
+
+- FetchHtmlAsync(string url, CancellationToken cancellationToken = default): Asynchronously fetches HTML content from the specified URL. It returns a WebResult object containing the success status, HTML content, status message, number of bytes loaded, and HTTP status code.
+- WebResult: A class representing the result of the web fetch operation, including properties for success status, HTML content, status message, bytes loaded, and HTTP status code.
+
+*/
 public sealed class WebService : IWebService
 {
+	// HttpClient instance for making HTTP requests
 	private readonly HttpClient _httpClient;
 
+	// Constructor to initialize the web service with an optional HttpClient
 	public WebService(HttpClient? client = null)
 	{
 		_httpClient = client ?? new HttpClient();

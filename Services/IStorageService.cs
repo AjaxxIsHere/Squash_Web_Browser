@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.Data.Sqlite;
 using Squash_Web_Browser.Models;
 
 namespace Squash_Web_Browser.Services;
@@ -19,13 +18,30 @@ public interface IStorageService
 	List<History> LoadHistory();
 }
 
+
+/*
+Summary: This code defines a storage service interface (IStorageService) and its implementation (StorageService) for managing persistent data storage in a web browser context.
+The StorageService class uses SQLite to store and retrieve data such as home page URL, last visited URL, bookmarks, and browsing history. Its methods include:
+
+- SaveHomePage(string url) and LoadHomePage(): Save and load the home page URL.
+- SaveLastUrl(string url) and LoadLastUrl(): Save and load the last visited URL
+- SaveBookmark(string name, string url), DeleteBookmark(int id), and LoadBookmarks(): Manage bookmarks by saving, deleting, and loading them.
+- SaveHistory(string url) and LoadHistory(): Save and load browsing history.
+- LoadBookmarks() : Loads all bookmarks from the database and returns them as a list of Bookmark objects.
+
+*/
 public sealed class StorageService : IStorageService
 {
 
+	// Database file path
 	private readonly string _dbFile;
+
+	// Constructor to initialize the storage service with the database file path
 	public StorageService(string dbFile = "browserdata.db")
 	{
 		_dbFile = dbFile;
+        using var db = new AppDbContext(_dbFile);
+        db.Database.EnsureCreated();
 	}
 
 	public void SaveLastUrl(string url)
@@ -33,18 +49,21 @@ public sealed class StorageService : IStorageService
 		if (string.IsNullOrWhiteSpace(url)) return;
 		try
 		{
-			using var conn = new SqliteConnection($"Data Source={_dbFile}");
-			conn.Open();
-			using var cmd = conn.CreateCommand();
-			cmd.CommandText = @"CREATE TABLE IF NOT EXISTS Settings (Key TEXT PRIMARY KEY, Value TEXT);";
-			cmd.ExecuteNonQuery();
-			cmd.CommandText = @"INSERT INTO Settings (Key, Value) VALUES ('LastUrl', $url) ON CONFLICT(Key) DO UPDATE SET Value=$url;";
-			cmd.Parameters.AddWithValue("$url", url);
-			cmd.ExecuteNonQuery();
+			using var db = new AppDbContext(_dbFile);
+			var lastUrlSetting = db.Settings.FirstOrDefault(s => s.Key == "LastUrl");
+			if (lastUrlSetting == null)
+			{
+				db.Settings.Add(new Setting { Key = "LastUrl", Value = url });
+			}
+			else
+			{
+				lastUrlSetting.Value = url;
+			}
+			db.SaveChanges();
 		}
 		catch
 		{
-			// swallow, caller can show generic error if needed
+			Console.WriteLine("Error saving last URL.");
 		}
 	}
 
@@ -52,17 +71,12 @@ public sealed class StorageService : IStorageService
 	{
 		try
 		{
-			using var conn = new SqliteConnection($"Data Source={_dbFile}");
-			conn.Open();
-			using var cmd = conn.CreateCommand();
-			cmd.CommandText = @"SELECT Value FROM Settings WHERE Key='LastUrl' LIMIT 1;";
-			using var reader = cmd.ExecuteReader();
-			if (reader.Read())
-				return reader.GetString(0);
+			using var db = new AppDbContext(_dbFile);
+			return db.Settings.FirstOrDefault(s => s.Key == "LastUrl")?.Value;
 		}
 		catch
-		{ 
-			// swallow, caller can show generic error if needed
+		{
+			Console.WriteLine("Error loading last URL.");
 		}
 		return null;
 	}
@@ -73,29 +87,19 @@ public sealed class StorageService : IStorageService
 
 		try
 		{
-			// Ensure the Bookmarks table exists
-			using var conn = new SqliteConnection($"Data Source={_dbFile}");
-			conn.Open();
-			using var cmd = conn.CreateCommand();
-			cmd.CommandText = @"CREATE TABLE IF NOT EXISTS Bookmarks (Id INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT, Url TEXT);";
-			cmd.ExecuteNonQuery();
-
-			// Check if a bookmark with the same name and url already exists using LINQ
-			var existing = LoadBookmarks()
-				.Any(b => string.Equals(b.Name, name, StringComparison.OrdinalIgnoreCase) &&
-						  string.Equals(b.Url, url, StringComparison.OrdinalIgnoreCase));
+			using var db = new AppDbContext(_dbFile);
+			var existing = db.Bookmarks
+				.Any(b => b.Name.ToLower() == name.ToLower() &&
+						  b.Url.ToLower() == url.ToLower());
 			if (existing)
 				return;
 
-			// Insert new bookmark
-			cmd.CommandText = @"INSERT INTO Bookmarks (Name, Url) VALUES ($name, $url);";
-			cmd.Parameters.AddWithValue("$name", name);
-			cmd.Parameters.AddWithValue("$url", url);
-			cmd.ExecuteNonQuery();
+			db.Bookmarks.Add(new Bookmark { Name = name, Url = url });
+			db.SaveChanges();
 		}
-		catch
+		catch (Exception ex)
 		{
-			// swallow, caller can show generic error if needed
+			Console.WriteLine("Error saving bookmark: " + ex.Message);
 		}
 	}
 
@@ -103,49 +107,32 @@ public sealed class StorageService : IStorageService
 	{
 		try
 		{
-			var bookmarks = LoadBookmarks();
-			var bookmarkToDelete = bookmarks.FirstOrDefault(b => b.Id == id);
+			using var db = new AppDbContext(_dbFile);
+			var bookmarkToDelete = db.Bookmarks.FirstOrDefault(b => b.Id == id);
 			if (bookmarkToDelete != null)
 			{
-				using var conn = new SqliteConnection($"Data Source={_dbFile}");
-				conn.Open();
-				using var cmd = conn.CreateCommand();
-				cmd.CommandText = @"DELETE FROM Bookmarks WHERE Id = $id;";
-				cmd.Parameters.AddWithValue("$id", id);
-				cmd.ExecuteNonQuery();
+				db.Bookmarks.Remove(bookmarkToDelete);
+				db.SaveChanges();
 			}
 		}
 		catch
 		{
-			// swallow, caller can show generic error if needed
+			Console.WriteLine("Error deleting bookmark.");
 		}
 	}
 
 	public List<Bookmark> LoadBookmarks()
 	{
-		var bookmarks = new List<Bookmark>();
 		try
 		{
-			using var conn = new SqliteConnection($"Data Source={_dbFile}");
-			conn.Open();
-			using var cmd = conn.CreateCommand();
-			cmd.CommandText = @"SELECT Id, Name, Url FROM Bookmarks;";
-			using var reader = cmd.ExecuteReader();
-			while (reader.Read())
-			{
-				bookmarks.Add(new Bookmark
-				{
-					Id = reader.GetInt32(0),
-					Name = reader.GetString(1),
-					Url = reader.GetString(2)
-				});
-			}
+			using var db = new AppDbContext(_dbFile);
+			return db.Bookmarks.ToList();
 		}
 		catch
 		{
-			// swallow, caller can show generic error if needed
+			Console.WriteLine("Error loading bookmarks.");
 		}
-		return bookmarks;
+		return new List<Bookmark>();
 	}
 
 	public void SaveHistory(string url)
@@ -154,48 +141,28 @@ public sealed class StorageService : IStorageService
 
 		try
 		{
-			using var conn = new SqliteConnection($"Data Source={_dbFile}");
-			conn.Open();
-			using var cmd = conn.CreateCommand();
-			cmd.CommandText = @"CREATE TABLE IF NOT EXISTS History (Id INTEGER PRIMARY KEY AUTOINCREMENT, Url TEXT, Timestamp DATETIME);";
-			cmd.ExecuteNonQuery();
-
-			cmd.CommandText = @"INSERT INTO History (Url, Timestamp) VALUES ($url, $timestamp);";
-			cmd.Parameters.AddWithValue("$url", url);
-			cmd.Parameters.AddWithValue("$timestamp", DateTime.Now);
-			cmd.ExecuteNonQuery();
+			using var db = new AppDbContext(_dbFile);
+			db.History.Add(new History { Url = url, Timestamp = DateTime.Now });
+			db.SaveChanges();
 		}
 		catch
 		{
-			// swallow
+			Console.WriteLine("Error saving history.");
 		}
 	}
 
 	public List<History> LoadHistory()
 	{
-		var history = new List<History>();
 		try
 		{
-			using var conn = new SqliteConnection($"Data Source={_dbFile}");
-			conn.Open();
-			using var cmd = conn.CreateCommand();
-			cmd.CommandText = @"SELECT Id, Url, Timestamp FROM History ORDER BY Timestamp DESC;";
-			using var reader = cmd.ExecuteReader();
-			while (reader.Read())
-			{
-				history.Add(new History
-				{
-					Id = reader.GetInt32(0),
-					Url = reader.GetString(1),
-					Timestamp = reader.GetDateTime(2)
-				});
-			}
+			using var db = new AppDbContext(_dbFile);
+			return db.History.OrderByDescending(h => h.Timestamp).ToList();
 		}
 		catch
 		{
-			// swallow
+			Console.WriteLine("Error loading history.");
 		}
-		return history;
+		return new List<History>();
 	}
 
 	public void SaveHomePage(string url)
@@ -203,18 +170,21 @@ public sealed class StorageService : IStorageService
 		if (string.IsNullOrWhiteSpace(url)) return;
 		try
 		{
-			using var conn = new SqliteConnection($"Data Source={_dbFile}");
-			conn.Open();
-			using var cmd = conn.CreateCommand();
-			cmd.CommandText = @"CREATE TABLE IF NOT EXISTS Settings (Key TEXT PRIMARY KEY, Value TEXT);";
-			cmd.ExecuteNonQuery();
-			cmd.CommandText = @"INSERT INTO Settings (Key, Value) VALUES ('HomePage', $url) ON CONFLICT(Key) DO UPDATE SET Value=$url;";
-			cmd.Parameters.AddWithValue("$url", url);
-			cmd.ExecuteNonQuery();
+			using var db = new AppDbContext(_dbFile);
+			var homePageSetting = db.Settings.FirstOrDefault(s => s.Key == "HomePage");
+			if (homePageSetting == null)
+			{
+				db.Settings.Add(new Setting { Key = "HomePage", Value = url });
+			}
+			else
+			{
+				homePageSetting.Value = url;
+			}
+			db.SaveChanges();
 		}
 		catch
 		{
-			// swallow, caller can show generic error if needed
+			Console.WriteLine("Error saving home page.");
 		}
 	}
 
@@ -222,18 +192,14 @@ public sealed class StorageService : IStorageService
 	{
 		try
 		{
-			using var conn = new SqliteConnection($"Data Source={_dbFile}");
-			conn.Open();
-			using var cmd = conn.CreateCommand();
-			cmd.CommandText = @"SELECT Value FROM Settings WHERE Key='HomePage' LIMIT 1;";
-			using var reader = cmd.ExecuteReader();
-			if (reader.Read())
-				return reader.GetString(0);
+			using var db = new AppDbContext(_dbFile);
+			return db.Settings.FirstOrDefault(s => s.Key == "HomePage")?.Value;
 		}
 		catch
 		{
-			// swallow, caller can show generic error if needed
+			Console.WriteLine("Error loading home page.");
 		}
 		return null;
 	}
 }
+

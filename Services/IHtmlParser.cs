@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using HtmlAgilityPack;
 
@@ -5,20 +6,30 @@ namespace Squash_Web_Browser.Services;
 
 public interface IHtmlParser
 {
-	ParseResult Parse(string html, int linkLimit = 5);
+	NewParsedResult Parse(string html, string baseUrl, int linkLimit = 5);
 }
 
-public sealed class ParseResult
+// ParseResult class which is needed because it acts as a data container for the results of HTML parsing, allowing the parser to return both the page title and a list of parsed links in a single object.
+public sealed class NewParsedResult
 {
 	public string Title { get; set; } = string.Empty;
 	public List<ParsedLink> Links { get; set; } = new();
 }
 
+/*
+Summary: This code defines an HTML parser interface (IHtmlParser) and its implementation (HtmlParser) for extracting the title and links from HTML content.
+The HtmlParser class uses the HtmlAgilityPack library to parse the HTML and extract relevant information. Its methods include:
+
+- Parse(string html, string baseUrl, int linkLimit = 5): Parses the provided HTML string and extracts the title and a list of links (up to the specified limit). It returns a ParseResult object containing the extracted title and links.
+- ParsedLink: A class representing a parsed link with its href and text.
+
+*/
 public sealed class HtmlParser : IHtmlParser
 {
-	public ParseResult Parse(string html, int linkLimit = 5)
+	public NewParsedResult Parse(string html, string baseUrl, int linkLimit = 5)
 	{
-		var result = new ParseResult();
+		var result = new NewParsedResult();
+		
 		if (string.IsNullOrWhiteSpace(html)) return result;
 		try
 		{
@@ -33,16 +44,19 @@ public sealed class HtmlParser : IHtmlParser
 			var linkNodes = doc.DocumentNode.SelectNodes("//a[@href]");
 			if (linkNodes != null)
 			{
+				var baseUri = new Uri(baseUrl);
 				int count = 0;
 				foreach (var a in linkNodes)
 				{
 					if (count++ >= linkLimit) break;
 					var href = a.GetAttributeValue("href", string.Empty).Trim();
 					if (string.IsNullOrEmpty(href)) continue;
+
+					var absoluteUri = new Uri(baseUri, href);
 					var text = a.InnerText?.Trim();
 					if (string.IsNullOrEmpty(text)) text = href;
 					text = HtmlEntity.DeEntitize(text);
-					links.Add(new ParsedLink { Href = href, Text = text });
+					links.Add(new ParsedLink { Href = absoluteUri.ToString(), Text = text });
 				}
 			}
 			result.Links = links; // mutate after creation for simplicity
@@ -50,7 +64,7 @@ public sealed class HtmlParser : IHtmlParser
 		}
 		catch
 		{
-			return new ParseResult();
+			return new NewParsedResult();
 		}
 	}
 }

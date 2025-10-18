@@ -30,6 +30,12 @@ public partial class MainWindow : Window
         {
             editHomePagePanel.DataContext = DataContext;
         }
+        
+        var bookmarksPanel = this.FindControl<BookmarksPanel>("BookmarksPanel");
+        if (bookmarksPanel != null)
+        {
+            bookmarksPanel.DataContext = DataContext;
+        }
     }
 
     private void ToggleSidebar(object? sender, RoutedEventArgs e)

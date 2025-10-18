@@ -20,6 +20,21 @@
         <KeyBinding Gesture="Enter" Command="{Binding FetchHtmlCommand}" />
       </TextBox.KeyBindings>
     </TextBox>
+    <Button Content="★" Width="40" Height="40" Margin="4,0,0,0" Name="BookmarkButton" ToolTip.Tip="Bookmark this page" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Command="{Binding ShowBookmarkFlyoutCommand}" CommandParameter="{Binding #BookmarkButton}">
+      <Button.Flyout>
+        <Flyout Placement="BottomEdgeAlignedLeft">
+          <StackPanel Width="250" Spacing="8" Margin="8">
+            <TextBlock Text="Add Bookmark" FontWeight="Bold"/>
+            <TextBox Watermark="Name" Text="{Binding NewBookmarkName, Mode=TwoWay}"/>
+            <TextBox Watermark="URL" Text="{Binding Address, Mode=OneWay}" IsReadOnly="True"/>
+            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+              <Button Content="Add" Command="{Binding AddBookmarkCommand}"/>
+              <Button Content="Cancel" Command="{Binding CancelBookmarkCommand}"/>
+            </StackPanel>
+          </StackPanel>
+        </Flyout>
+      </Button.Flyout>
+    </Button>
     <Separator Width="32"/>
   <Button Content="Go" Width="50" Height="40" Margin="4,0,0,0" Name="GoButton" Command="{Binding FetchHtmlCommand}" HorizontalAlignment="Center" VerticalContentAlignment="Center" />
     <Button Content="HTML" Width="60" Height="40" Margin="4,0,0,0" ToolTip.Tip="Toggle Raw HTML" Command="{Binding ToggleHtmlCommand}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
