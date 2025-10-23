@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace Squash_Web_Browser.Services;
@@ -27,7 +28,7 @@ The NavService class maintains a list of URLs to represent the navigation stack 
 public sealed class NavService : INavService
 {
     private readonly List<string> _navigationStack = new();     // Initialize a simple navigation stack to keep track of URLs using a list. (kind of similar to a stack but allows forward navigation)
-    private int _navigationIndex = 0;     // Index to track the current position in the navigation stack, 0 indicates first item
+    private int _navigationIndex = -1;     // Index to track the current position in the navigation stack, -1 indicates empty stack
 
     // Property to get the current URL in the navigation stack
     public string? Current => (_navigationIndex >= 0 && _navigationIndex < _navigationStack.Count)
@@ -39,26 +40,36 @@ public sealed class NavService : INavService
 
     public void NavigateTo(string url)
     {
-        // Don't add to stack if it's the same as the current URL
-        if (_navigationStack.Count > 0 && _navigationIndex >= 0 && _navigationIndex < _navigationStack.Count && _navigationStack[_navigationIndex] == url)
+        string normalizedUrl = UrlHelper.NormalizeUrl(url);
+        Console.WriteLine($"NavigateTo called with URL: {url} (normalized: {normalizedUrl})");
+        // Don't add to stack if it's the same as the current URL (normalized)
+        if (_navigationStack.Count > 0 && _navigationIndex >= 0 && _navigationIndex < _navigationStack.Count && _navigationStack[_navigationIndex] == normalizedUrl)
         {
+            Console.WriteLine("URL is the same as current. Navigation ignored.");
             return;
         }
 
         if (_navigationIndex < _navigationStack.Count - 1)
         {
             // We are navigating forward from a point in the history, so we clear the forward stack
+            Console.WriteLine($"Clearing forward stack from index {_navigationIndex + 1} to {_navigationStack.Count - 1}");
             _navigationStack.RemoveRange(_navigationIndex + 1, _navigationStack.Count - (_navigationIndex + 1));
         }
-        _navigationStack.Add(url);
-        _navigationIndex++;
+        _navigationStack.Add(normalizedUrl);
+        _navigationIndex = _navigationStack.Count - 1;
+        Console.WriteLine("Current stack after navigation: " + string.Join(", ", _navigationStack));
+        Console.WriteLine("Navigation index after navigation: " + _navigationIndex);
     }
 
     public string? GoBack()
     {
         if (CanGoBack())
         {
+
             _navigationIndex--;
+            Console.WriteLine("Current stack:" + string.Join(", ", _navigationStack));
+            Console.WriteLine("Navigation index:" + _navigationIndex);
+            
             return Current;
         }
         return null;
@@ -69,6 +80,8 @@ public sealed class NavService : INavService
         if (CanGoForward())
         {
             _navigationIndex++;
+            Console.WriteLine("Current stack:" + string.Join(", ", _navigationStack));  
+
             return Current;
         }
         return null;

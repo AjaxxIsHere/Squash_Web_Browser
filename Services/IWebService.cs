@@ -15,6 +15,7 @@ public interface IWebService
 public sealed class WebResult
 {
 	public bool IsSuccess { get; init; }
+	public string FinalUrl { get; init; } = string.Empty;
 	public string Html { get; init; } = string.Empty;
 	public string StatusMessage { get; init; } = string.Empty;
 	public int BytesLoaded { get; init; }
@@ -45,22 +46,16 @@ public sealed class WebService : IWebService
 		if (string.IsNullOrWhiteSpace(url))
 			return new WebResult { IsSuccess = false, StatusMessage = "Empty URL." };
 
-		if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+		string normalizedUrl = UrlHelper.NormalizeUrl(url);
+		if (!Uri.TryCreate(normalizedUrl, UriKind.Absolute, out var uri))
 		{
-			if (Uri.TryCreate("https://" + url, UriKind.Absolute, out var httpsUri))
-			{
-				uri = httpsUri;
-			}
-			else
-			{
-				return new WebResult { IsSuccess = false, StatusMessage = "Invalid URL." };
-			}
+			return new WebResult { IsSuccess = false, StatusMessage = "Invalid URL." };
 		}
 
 		try
 		{
 			using var ctsLinked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-			ctsLinked.CancelAfter(TimeSpan.FromSeconds(20));
+			ctsLinked.CancelAfter(TimeSpan.FromSeconds(30));
 			var response = await _httpClient.GetAsync(uri, ctsLinked.Token);
 			var bytes = await response.Content.ReadAsByteArrayAsync(ctsLinked.Token);
 
@@ -81,6 +76,7 @@ public sealed class WebService : IWebService
 				return new WebResult
 				{
 					IsSuccess = true,
+					FinalUrl = uri.ToString(),
 					Html = html,
 					BytesLoaded = bytes.Length,
 					StatusCode = (int)response.StatusCode,
@@ -99,6 +95,7 @@ public sealed class WebService : IWebService
 				return new WebResult
 				{
 					IsSuccess = false,
+					FinalUrl = uri.ToString(),
 					Html = html, // still return body for parsing attempt
 					BytesLoaded = bytes.Length,
 					StatusCode = (int)response.StatusCode,
@@ -120,3 +117,4 @@ public sealed class WebService : IWebService
 		}
 	}
 }
+

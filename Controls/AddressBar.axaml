@@ -4,17 +4,18 @@
              x:DataType="vm:MainWindowViewModel"
              x:Class="Squash_Web_Browser.Controls.AddressBar">
   <DockPanel Margin="4">
+    <Image Source="avares://Squash_Web_Browser/Assets/Images/logo.png" Height="40" Width="40" Margin="4,0,0,0" DockPanel.Dock="Left"/>
     <Button Content="☰" Width="40" Height="40" Margin="4,0,0,0" Name="SidebarToggleButton" ToolTip.Tip="Toggle Sidebar" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
     <Separator Width="8"/>
     <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" Spacing="4">
       <Button Content="◀" Name="BackButton" ToolTip.Tip="Back" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="40" Height="40" Command="{Binding BackButtonCommand}"/>
       <Button Content="▶" Name="ForwardButton" ToolTip.Tip="Forward" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="40" Height="40" Command="{Binding ForwardButtonCommand}"/>
-      <Button Content="⟳" Name="ReloadButton" ToolTip.Tip="Reload" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="40" Height="40"/>
+      <!-- <Button Content="⟳" Name="ReloadButton" ToolTip.Tip="Reload" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="40" Height="40"/> -->
       <Button Content="🏠" Name="HomeButton" ToolTip.Tip="Home" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="40" Height="40" Command="{Binding HomeButtonCommand}"/>
     </StackPanel>
     <!-- Add spacing here -->
     <Separator Width="32"/>
-    <TextBox Watermark="Enter URL or search" Name="AddressTextBox" HorizontalAlignment="Stretch" Width="400"
+    <TextBox Watermark="Enter URL or search" Name="AddressTextBox" HorizontalAlignment="Stretch" Width="500"
              Text="{Binding Address, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
       <TextBox.KeyBindings>
         <KeyBinding Gesture="Enter" Command="{Binding FetchHtmlCommand}" />
@@ -36,7 +37,8 @@
       </Button.Flyout>
     </Button>
     <Separator Width="32"/>
-  <Button Content="Go" Width="50" Height="40" Margin="4,0,0,0" Name="GoButton" Command="{Binding FetchHtmlCommand}" HorizontalAlignment="Center" VerticalContentAlignment="Center" />
-    <Button Content="HTML" Width="60" Height="40" Margin="4,0,0,0" ToolTip.Tip="Toggle Raw HTML" Command="{Binding ToggleHtmlCommand}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+    <Button Content="Go" Width="50" Height="40" Margin="4,0,0,0" Name="GoButton" Command="{Binding FetchHtmlCommand}" HorizontalAlignment="Center" VerticalContentAlignment="Center" />
+    <Button Content="HTML" Width="60" Height="40" Margin="4,0,0,0" ToolTip.Tip="Toggle Raw HTML Panel" Command="{Binding ToggleHtmlCommand}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+    <!-- <Image Source="avares://Squash_Web_Browser/Assets/Images/logo.png" Height="40" Width="40" Margin="4,0,0,0" DockPanel.Dock="Right"/> -->
   </DockPanel>
 </UserControl>

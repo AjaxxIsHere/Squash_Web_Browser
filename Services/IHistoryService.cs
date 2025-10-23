@@ -1,3 +1,4 @@
+using System;
 using System.Collections.ObjectModel;
 using Squash_Web_Browser.Models;
 
@@ -16,6 +17,7 @@ The HistoryService class interacts with a storage service (IStorageService) to l
 - HistoryService(IStorageService storageService): Constructor that accepts a storage service dependency for data persistence.
 - LoadHistory(): Loads the browsing history from storage and returns it as an observable collection of History objects.
 - SaveHistory(string url): Saves a new URL to the browsing history in storage.
+- NormalizeUrl(string url): A private helper method that normalizes a given URL by ensuring it has the correct scheme (http/https) and formatting.
 
 */
 public class HistoryService : IHistoryService
@@ -38,6 +40,6 @@ public class HistoryService : IHistoryService
 
     public void SaveHistory(string url)
     {
-        _storageService.SaveHistory(url);
+        _storageService.SaveHistory(UrlHelper.NormalizeUrl(url));
     }
 }

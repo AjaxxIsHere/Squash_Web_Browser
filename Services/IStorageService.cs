@@ -49,8 +49,14 @@ public sealed class StorageService : IStorageService
 		if (string.IsNullOrWhiteSpace(url)) return;
 		try
 		{
-			using var db = new AppDbContext(_dbFile);
-			var lastUrlSetting = db.Settings.FirstOrDefault(s => s.Key == "LastUrl");
+			using var db = new AppDbContext(_dbFile); // Open database context
+
+			// Check if the "LastUrl" setting already exists
+			var lastUrlSetting = (from s in db.Settings
+								  where s.Key == "LastUrl"
+								  select s).FirstOrDefault();
+
+			// If it doesn't exist, create a new setting; otherwise, update the existing one
 			if (lastUrlSetting == null)
 			{
 				db.Settings.Add(new Setting { Key = "LastUrl", Value = url });
@@ -72,7 +78,9 @@ public sealed class StorageService : IStorageService
 		try
 		{
 			using var db = new AppDbContext(_dbFile);
-			return db.Settings.FirstOrDefault(s => s.Key == "LastUrl")?.Value;
+			return (from s in db.Settings
+					where s.Key == "LastUrl"
+					select s.Value).FirstOrDefault();
 		}
 		catch
 		{
@@ -88,10 +96,11 @@ public sealed class StorageService : IStorageService
 		try
 		{
 			using var db = new AppDbContext(_dbFile);
-			var existing = db.Bookmarks
-				.Any(b => b.Name.ToLower() == name.ToLower() &&
-						  b.Url.ToLower() == url.ToLower());
-			if (existing)
+			var existingBookmark = (from b in db.Bookmarks
+									where b.Name.ToLower() == name.ToLower()
+									   && b.Url.ToLower() == url.ToLower()
+									select b).FirstOrDefault();
+			if (existingBookmark != null)
 				return;
 
 			db.Bookmarks.Add(new Bookmark { Name = name, Url = url });
@@ -108,7 +117,9 @@ public sealed class StorageService : IStorageService
 		try
 		{
 			using var db = new AppDbContext(_dbFile);
-			var bookmarkToDelete = db.Bookmarks.FirstOrDefault(b => b.Id == id);
+			var bookmarkToDelete = (from b in db.Bookmarks
+									where b.Id == id
+									select b).FirstOrDefault();
 			if (bookmarkToDelete != null)
 			{
 				db.Bookmarks.Remove(bookmarkToDelete);
@@ -126,7 +137,8 @@ public sealed class StorageService : IStorageService
 		try
 		{
 			using var db = new AppDbContext(_dbFile);
-			return db.Bookmarks.ToList();
+			return (from b in db.Bookmarks
+					select b).ToList();
 		}
 		catch
 		{
@@ -142,6 +154,15 @@ public sealed class StorageService : IStorageService
 		try
 		{
 			using var db = new AppDbContext(_dbFile);
+			var lastHistory = (from h in db.History
+							   orderby h.Timestamp descending
+							   select h).FirstOrDefault();
+
+			if (lastHistory != null && string.Equals(lastHistory.Url, url, StringComparison.OrdinalIgnoreCase))
+			{
+				return;
+			}
+
 			db.History.Add(new History { Url = url, Timestamp = DateTime.Now });
 			db.SaveChanges();
 		}
@@ -156,7 +177,9 @@ public sealed class StorageService : IStorageService
 		try
 		{
 			using var db = new AppDbContext(_dbFile);
-			return db.History.OrderByDescending(h => h.Timestamp).ToList();
+			return (from h in db.History
+					orderby h.Timestamp descending
+					select h).ToList();
 		}
 		catch
 		{
@@ -171,7 +194,9 @@ public sealed class StorageService : IStorageService
 		try
 		{
 			using var db = new AppDbContext(_dbFile);
-			var homePageSetting = db.Settings.FirstOrDefault(s => s.Key == "HomePage");
+			var homePageSetting = (from s in db.Settings
+								   where s.Key == "HomePage"
+								   select s).FirstOrDefault();
 			if (homePageSetting == null)
 			{
 				db.Settings.Add(new Setting { Key = "HomePage", Value = url });
@@ -193,7 +218,9 @@ public sealed class StorageService : IStorageService
 		try
 		{
 			using var db = new AppDbContext(_dbFile);
-			return db.Settings.FirstOrDefault(s => s.Key == "HomePage")?.Value;
+			return (from s in db.Settings
+					where s.Key == "HomePage"
+					select s.Value).FirstOrDefault();
 		}
 		catch
 		{

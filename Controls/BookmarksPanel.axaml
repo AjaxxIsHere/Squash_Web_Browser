@@ -8,9 +8,11 @@
     <!-- Add Bookmark Section -->
     <StackPanel Orientation="Vertical">
       <StackPanel Orientation="Horizontal" Margin="8,0,8,8" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
-        <TextBox x:Name="NameTextBox" Width="80" Height="30" Watermark="Name" TextChanged="InputFields_OnTextChanged" />
-        <TextBox x:Name="UrlTextBox" Width="200" Height="30" Watermark="URL" TextChanged="InputFields_OnTextChanged" />
-        <Button x:Name="AddBookmarkButton" Content="Add" Width="60" IsEnabled="False"/>
+        <TextBox Width="80" Height="30" Watermark="Name"
+                 Text="{Binding BookmarkPanelName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+        <TextBox Width="200" Height="30" Watermark="URL"
+                 Text="{Binding BookmarkPanelUrl, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+        <Button Content="Add" Width="60" Command="{Binding BookmarkPanelAddCommand}" />
       </StackPanel>
        <TextBlock Text="(Click a bookmark name to open it)" FontStyle="Italic" Margin="8,4,8,0" FontSize="11" />
 
@@ -18,10 +20,17 @@
       <ListBox.ItemTemplate>
         <DataTemplate DataType="models:Bookmark">
           <StackPanel Orientation="Horizontal" Spacing="4">
-            <TextBlock Text="{Binding Name}" Width="80" VerticalAlignment="Center" PointerPressed="Bookmark_PointerPressed" />
-            <TextBlock Text="{Binding Url}" Width="180" VerticalAlignment="Center" />
-            <Button Content="Edit ✏️" Width="60" Click="EditBookmark_Click" />
-            <Button Content="Delete 🗑️" Width="60" Click="DeleteBookmark_Click" />
+            <Button Content="{Binding Name}" Width="80" HorizontalAlignment="Left" Padding="0"
+                    Background="Transparent" BorderThickness="0" Cursor="Hand"
+                    Command="{Binding #BookmarksList.DataContext.BookmarkPanelOpenCommand}"
+                    CommandParameter="{Binding}" />
+            <TextBlock Text="{Binding Url}" Width="180" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+            <Button Content="Edit ✏️" Width="60"
+                    Command="{Binding #BookmarksList.DataContext.BookmarkPanelEditCommand}"
+                    CommandParameter="{Binding}" />
+            <Button Content="Delete 🗑️" Width="60"
+                    Command="{Binding #BookmarksList.DataContext.BookmarkPanelDeleteCommand}"
+                    CommandParameter="{Binding}" />
           </StackPanel>
         </DataTemplate>
       </ListBox.ItemTemplate>

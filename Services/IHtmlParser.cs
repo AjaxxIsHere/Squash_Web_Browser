@@ -26,22 +26,38 @@ The HtmlParser class uses the HtmlAgilityPack library to parse the HTML and extr
 */
 public sealed class HtmlParser : IHtmlParser
 {
+	/*
+	How does each line work in the Parse method?
+	- The method starts by creating a new instance of NewParsedResult to hold the parsing results
+	- It checks if the input HTML string is null or whitespace; if so, it returns an empty result
+	- It loads the HTML string into an HtmlDocument object for parsing
+	- It selects the title node from the document and extracts its inner text, trimming whitespace and decoding HTML entities
+	- It initializes a list to hold the parsed links
+	- It selects all anchor nodes with href attributes from the document
+	- It creates a base URI from the provided baseUrl for resolving relative links
+	- It iterates over the selected anchor nodes, up to the specified link limit
+	- For each anchor, it retrieves the href attribute and resolves it to an absolute URI
+	- It extracts the inner text of the anchor, trimming whitespace and decoding HTML entities
+	- It adds a new ParsedLink object to the list with the resolved href and text
+	- Finally, it assigns the list of parsed links to the result and returns it
+	*/
 	public NewParsedResult Parse(string html, string baseUrl, int linkLimit = 5)
 	{
-		var result = new NewParsedResult();
+		var result = new NewParsedResult(); // Initialize new object to hold results
+
+		if (string.IsNullOrWhiteSpace(html)) return result; // Return empty result if HTML is null or whitespace
 		
-		if (string.IsNullOrWhiteSpace(html)) return result;
 		try
 		{
-			var doc = new HtmlDocument();
+			var doc = new HtmlDocument(); // Create new HTML document
 			doc.LoadHtml(html);
-			var titleNode = doc.DocumentNode.SelectSingleNode("//title");
+			var titleNode = doc.DocumentNode.SelectSingleNode("//title"); // extract title
 			var title = titleNode?.InnerText?.Trim() ?? string.Empty;
-			if (!string.IsNullOrEmpty(title)) title = HtmlEntity.DeEntitize(title);
+			if (!string.IsNullOrEmpty(title)) title = HtmlEntity.DeEntitize(title); 
 			result.Title = title;
 
 			var links = new List<ParsedLink>();
-			var linkNodes = doc.DocumentNode.SelectNodes("//a[@href]");
+			var linkNodes = doc.DocumentNode.SelectNodes("//a[@href]"); // extract links
 			if (linkNodes != null)
 			{
 				var baseUri = new Uri(baseUrl);

@@ -4,6 +4,11 @@ using System.Windows.Input;
 
 namespace Squash_Web_Browser.Services;
 
+
+/*
+Summary: A command that relays its functionality to other objects by invoking delegates.
+
+*/
 public class RelayCommand : ICommand
 {
     private readonly Action<object?> _execute;

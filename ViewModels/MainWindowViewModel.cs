@@ -18,6 +18,7 @@ Methods include:
 - ParseHtml(string html, string baseUrl): Parses the fetched HTML to extract the page title and links.
 - ClearParsed(): Clears the parsed state when an error occurs or no HTML is available.
 - GoHomeAsync(), GoBackAsync(), GoForwardAsync(): Navigation methods to handle home, back, and forward actions.
+- SaveHomePage(): Saves the current home page URL to storage.
 
 */
 public class MainWindowViewModel : ViewModelBase
@@ -27,8 +28,11 @@ public class MainWindowViewModel : ViewModelBase
     private readonly IHtmlParser _htmlParser;
     private readonly INavService _navService;
     private readonly IHistoryService _historyService;
-
-    // public static string Title => "Squash Browser"; // Application title
+    private readonly IBookmarkService _bookmarkService;
+    private readonly RelayCommand _bookmarkPanelAddCommand;
+    private readonly RelayCommand _bookmarkPanelDeleteCommand;
+    private readonly RelayCommand _bookmarkPanelEditCommand;
+    private readonly RelayCommand _bookmarkPanelOpenCommand;
     private string _address;                        // current URL
     private const string DbFile = "browserdata.db"; // still referenced by default settings service
     private string _htmlSrc = string.Empty;         // holds fetched HTML
@@ -37,6 +41,10 @@ public class MainWindowViewModel : ViewModelBase
     private string _homePageUrl = string.Empty;     // home page URL
     private string _pageTitle = string.Empty;       // parsed <title>          
     private bool _showHtml = true;                  // controls visibility of raw HTML panel
+    private string _newBookmarkName = string.Empty; // name for new bookmark
+    private bool _isBookmarkFlyoutOpen = false;     // indicates if the bookmark flyout is open
+    private string _bookmarkPanelName = string.Empty; // panel name input
+    private string _bookmarkPanelUrl = string.Empty;   // panel url input
 
     // When to add an item to or remove an item from an ObservableCollection, it automatically notifies the user interface, which then updates itself to reflect the change.
     public ObservableCollection<ParsedLink> Links { get; } = new();
@@ -53,6 +61,80 @@ public class MainWindowViewModel : ViewModelBase
     public ICommand ShowBookmarkFlyoutCommand { get; }
     public ICommand AddBookmarkCommand { get; }
     public ICommand CancelBookmarkCommand { get; }
+    public ICommand BookmarkPanelAddCommand => _bookmarkPanelAddCommand;
+    public ICommand BookmarkPanelDeleteCommand => _bookmarkPanelDeleteCommand;
+    public ICommand BookmarkPanelEditCommand => _bookmarkPanelEditCommand;
+    public ICommand BookmarkPanelOpenCommand => _bookmarkPanelOpenCommand;
+
+    // Default constructor initializing with default services
+    public MainWindowViewModel() : this(new WebService(), new StorageService(DbFile), new HtmlParser(), new NavService(), null) { }
+
+    // Constructor with dependency injection for services
+    public MainWindowViewModel(IWebService webService, IStorageService settingsService, IHtmlParser htmlParser, INavService navService, IHistoryService? historyService = null, IBookmarkService? bookmarkService = null)
+    {
+        _webService = webService;
+        _settingsService = settingsService;
+        _htmlParser = htmlParser;
+        _navService = navService;
+        _historyService = historyService ?? new HistoryService(_settingsService);
+        _bookmarkService = bookmarkService ?? new BookmarkService(_settingsService);
+
+        _bookmarkPanelAddCommand = new RelayCommand(AddBookmarkFromPanel, CanAddBookmarkFromPanel);
+        _bookmarkPanelDeleteCommand = new RelayCommand(DeleteBookmarkFromPanel);
+        _bookmarkPanelEditCommand = new RelayCommand(EditBookmarkFromPanel);
+        _bookmarkPanelOpenCommand = new RelayCommand(OpenBookmarkFromPanel);
+
+        ShowBookmarkFlyoutCommand = new RelayCommand(ShowBookmarkFlyout);
+        AddBookmarkCommand = new RelayCommand(AddBookmark);
+        CancelBookmarkCommand = new RelayCommand(CancelBookmark);
+
+        FetchHtmlCommand = new AsyncRelayCommand(() => FetchHtmlAsync(true), () => !IsBusy);
+        ToggleHtmlCommand = new RelayCommand(() => ShowHtml = !ShowHtml);
+        LinkClickCommand = new RelayCommand((object? param) =>
+        {
+            if (param is ParsedLink link && !string.IsNullOrWhiteSpace(link.Href))
+            {
+                Address = link.Href;
+                (FetchHtmlCommand as AsyncRelayCommand)?.Execute(null);
+            }
+        });
+
+        BackButtonCommand = new AsyncRelayCommand(GoBackAsync, () => _navService.CanGoBack());
+        ForwardButtonCommand = new AsyncRelayCommand(GoForwardAsync, () => _navService.CanGoForward());
+        HomeButtonCommand = new AsyncRelayCommand(GoHomeAsync);
+
+        SaveHomePageCommand = new RelayCommand(SaveHomePage);
+        HistoryClickCommand = new RelayCommand((object? param) =>
+        {
+            if (param is History historyItem && !string.IsNullOrWhiteSpace(historyItem.Url))
+            {
+                Address = historyItem.Url;
+                (FetchHtmlCommand as AsyncRelayCommand)?.Execute(null);
+            }
+        });
+
+        var homePageUrl = _settingsService.LoadHomePage();
+        
+        if (string.IsNullOrWhiteSpace(homePageUrl))
+        {
+            homePageUrl = "https://www.hw.ac.uk/";
+            _settingsService.SaveHomePage(homePageUrl);
+        }
+        _homePageUrl = homePageUrl;
+        RaisePropertyChanged(nameof(HomePageUrl));
+        _address = homePageUrl;
+        RaisePropertyChanged(nameof(Address));
+
+        var lastUrl = _settingsService.LoadLastUrl();
+        if (!string.IsNullOrWhiteSpace(lastUrl))
+        {
+            _address = lastUrl;
+            RaisePropertyChanged(nameof(Address));
+        }
+
+        LoadHistory();
+        LoadBookmarks();
+    }
 
     public string Address
     {
@@ -131,7 +213,7 @@ public class MainWindowViewModel : ViewModelBase
         }
     }
 
-    private string _newBookmarkName = string.Empty;
+    // Name for the new bookmark being added
     public string NewBookmarkName
     {
         get => _newBookmarkName;
@@ -144,7 +226,8 @@ public class MainWindowViewModel : ViewModelBase
             }
         }
     }
-    private bool _isBookmarkFlyoutOpen;
+
+    // Indicates if the bookmark flyout is open
     public bool IsBookmarkFlyoutOpen
     {
         get => _isBookmarkFlyoutOpen;
@@ -158,70 +241,34 @@ public class MainWindowViewModel : ViewModelBase
         }
     }
 
-
-    // Default constructor initializing with default services
-    public MainWindowViewModel()
-        : this(new WebService(), new StorageService(DbFile), new HtmlParser(), new NavService(), null) { }
-
-
-    // Constructor with dependency injection for services
-    public MainWindowViewModel(IWebService webService, IStorageService settingsService, IHtmlParser htmlParser, INavService navService, IHistoryService? historyService = null)
+    // Input for bookmark name in the panel
+    public string BookmarkPanelName
     {
-        _webService = webService;
-        _settingsService = settingsService;
-        _htmlParser = htmlParser;
-        _navService = navService;
-        _historyService = historyService ?? new HistoryService(_settingsService);
-
-        ShowBookmarkFlyoutCommand = new RelayCommand(ShowBookmarkFlyout);
-        AddBookmarkCommand = new RelayCommand(AddBookmark);
-        CancelBookmarkCommand = new RelayCommand(CancelBookmark);
-
-        FetchHtmlCommand = new AsyncRelayCommand(() => FetchHtmlAsync(true), () => !IsBusy);
-        ToggleHtmlCommand = new RelayCommand(() => ShowHtml = !ShowHtml);
-        LinkClickCommand = new RelayCommand((object? param) =>
+        get => _bookmarkPanelName;
+        set
         {
-            if (param is ParsedLink link && !string.IsNullOrWhiteSpace(link.Href))
+            if (value != _bookmarkPanelName)
             {
-                Address = link.Href;
-                (FetchHtmlCommand as AsyncRelayCommand)?.Execute(null);
+                _bookmarkPanelName = value;
+                RaisePropertyChanged();
+                NotifyBookmarkPanelStateChanged();
             }
-        });
+        }
+    }
 
-        BackButtonCommand = new AsyncRelayCommand(GoBackAsync, () => _navService.CanGoBack());
-        ForwardButtonCommand = new AsyncRelayCommand(GoForwardAsync, () => _navService.CanGoForward());
-        HomeButtonCommand = new AsyncRelayCommand(GoHomeAsync);
-
-        SaveHomePageCommand = new RelayCommand(SaveHomePage);
-        HistoryClickCommand = new RelayCommand((object? param) =>
+    // Input for bookmark URL in the panel
+    public string BookmarkPanelUrl
+    {
+        get => _bookmarkPanelUrl;
+        set
         {
-            if (param is History historyItem && !string.IsNullOrWhiteSpace(historyItem.Url))
+            if (value != _bookmarkPanelUrl)
             {
-                Address = historyItem.Url;
-                (FetchHtmlCommand as AsyncRelayCommand)?.Execute(null);
+                _bookmarkPanelUrl = value;
+                RaisePropertyChanged();
+                NotifyBookmarkPanelStateChanged();
             }
-        });
-
-        var homePageUrl = _settingsService.LoadHomePage();
-        if (string.IsNullOrWhiteSpace(homePageUrl))
-        {
-            homePageUrl = "https://hw.ac.uk";
-            _settingsService.SaveHomePage(homePageUrl);
         }
-        _homePageUrl = homePageUrl;
-        RaisePropertyChanged(nameof(HomePageUrl));
-        _address = homePageUrl;
-        RaisePropertyChanged(nameof(Address));
-
-        var lastUrl = _settingsService.LoadLastUrl();
-        if (!string.IsNullOrWhiteSpace(lastUrl))
-        {
-            _address = lastUrl;
-            RaisePropertyChanged(nameof(Address));
-        }
-
-        LoadHistory();
-        LoadBookmarks();
     }
 
     private void CancelBookmark()
@@ -236,8 +283,15 @@ public class MainWindowViewModel : ViewModelBase
             Status = "Bookmark name and URL cannot be empty.";
             return;
         }
-        _settingsService.SaveBookmark(NewBookmarkName, Address);
-        Status = $"Bookmark '{NewBookmarkName}' added.";
+        var bookmarkName = NewBookmarkName;
+        var result = _bookmarkService.AddBookmark(bookmarkName, Address);
+        if (!result.Success)
+        {
+            Status = result.ErrorMessage ?? "Unable to add bookmark.";
+            return;
+        }
+
+        Status = $"Bookmark '{bookmarkName}' added.";
         NewBookmarkName = string.Empty;
         IsBookmarkFlyoutOpen = false;
         LoadBookmarks();
@@ -256,7 +310,7 @@ public class MainWindowViewModel : ViewModelBase
 
     private void LoadBookmarks()
     {
-        var bookmarks = _settingsService.LoadBookmarks();
+        var bookmarks = _bookmarkService.LoadBookmarks();
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
             Bookmarks.Clear();
@@ -265,6 +319,73 @@ public class MainWindowViewModel : ViewModelBase
                 Bookmarks.Add(item);
             }
         });
+    }
+
+    private void AddBookmarkFromPanel()
+    {
+        var bookmarkName = BookmarkPanelName;
+        var bookmarkUrl = BookmarkPanelUrl;
+
+        var result = _bookmarkService.AddBookmark(bookmarkName, bookmarkUrl, enforceUrlValidation: true);
+        if (!result.Success)
+        {
+            Status = result.ErrorMessage ?? "Unable to add bookmark.";
+            return;
+        }
+
+        Status = $"Bookmark '{bookmarkName}' added.";
+        BookmarkPanelName = string.Empty;
+        BookmarkPanelUrl = string.Empty;
+        LoadBookmarks();
+    }
+
+    private bool CanAddBookmarkFromPanel()
+    {
+        return !string.IsNullOrWhiteSpace(BookmarkPanelName) && _bookmarkService.IsValidUrl(BookmarkPanelUrl);
+    }
+
+    private void DeleteBookmarkFromPanel(object? parameter)
+    {
+        if (parameter is Bookmark bookmark)
+        {
+            _bookmarkService.DeleteBookmark(bookmark.Id);
+            LoadBookmarks();
+        }
+    }
+
+    private void EditBookmarkFromPanel(object? parameter)
+    {
+        if (!IsBookmarkPanelInputEmpty())
+        {
+            return;
+        }
+
+        if (parameter is Bookmark bookmark)
+        {
+            BookmarkPanelName = bookmark.Name;
+            BookmarkPanelUrl = bookmark.Url;
+            _bookmarkService.DeleteBookmark(bookmark.Id);
+            LoadBookmarks();
+        }
+    }
+
+    private void OpenBookmarkFromPanel(object? parameter)
+    {
+        if (parameter is Bookmark bookmark)
+        {
+            Address = bookmark.Url;
+            (FetchHtmlCommand as AsyncRelayCommand)?.Execute(null);
+        }
+    }
+
+    private bool IsBookmarkPanelInputEmpty()
+    {
+        return string.IsNullOrWhiteSpace(BookmarkPanelName) && string.IsNullOrWhiteSpace(BookmarkPanelUrl);
+    }
+
+    private void NotifyBookmarkPanelStateChanged()
+    {
+        _bookmarkPanelAddCommand.RaiseCanExecuteChanged();
     }
 
     private async Task GoHomeAsync()
@@ -326,6 +447,7 @@ public class MainWindowViewModel : ViewModelBase
         }
     }
 
+    // Navigate forward in history
     private async Task GoForwardAsync()
     {
         var next = _navService.GoForward();
@@ -337,43 +459,58 @@ public class MainWindowViewModel : ViewModelBase
     }
 
     // Fetches the HTML from the specified URL asynchronously
-    private async Task FetchHtmlAsync(bool isNewNavigation)
+    private async Task FetchHtmlAsync(bool isNewNavigation = true)
     {
         if (string.IsNullOrWhiteSpace(Address))
         {
-            Status = "Please enter a URL.";
+            Status = "Address cannot be empty.";
             return;
         }
 
         IsBusy = true;
-        HtmlSource = string.Empty;
-        try
+        Status = "";
+        ClearParsed();
+
+        var result = await _webService.FetchHtmlAsync(Address);
+        if (result.IsSuccess)
         {
+            HtmlSource = result.Html;
+            Status = result.StatusMessage;
+            ParseHtml(result.Html, result.FinalUrl);
             if (isNewNavigation)
             {
                 _navService.NavigateTo(Address);
                 _historyService.SaveHistory(Address);
                 LoadHistory();
             }
-
-            var result = await _webService.FetchHtmlAsync(Address);
-            HtmlSource = result.Html;
-            Status = result.StatusMessage;
-            if (!string.IsNullOrWhiteSpace(result.Html))
-            {
-                ParseHtml(result.Html, Address);
-            }
-            else
-            {
-                ClearParsed();
-            }
         }
-        finally
+        else
         {
-            IsBusy = false;
+            HtmlSource = result.Html; // show whatever was returned
+            Status = result.StatusMessage;
         }
+        IsBusy = false;
     }
 
+    // Parses the fetched HTML to extract title and links
+    private void ParseHtml(string html, string baseUrl)
+    {
+        if (string.IsNullOrWhiteSpace(html) || string.IsNullOrWhiteSpace(baseUrl))
+        {
+            ClearParsed();
+            return;
+        }
+        var parsed = _htmlParser.Parse(html, baseUrl);
+        PageTitle = parsed.Title;
+        Links.Clear();
+        foreach (var link in parsed.Links)
+        {
+            Links.Add(link);
+        }
+        RaisePropertyChanged(nameof(LinkCount));
+    }
+
+    // Loads browsing history from storage
     private void LoadHistory()
     {
         var history = _historyService.LoadHistory();
@@ -387,20 +524,11 @@ public class MainWindowViewModel : ViewModelBase
         });
     }
 
+    // Clears the parsed HTML data
     private void ClearParsed()
     {
         PageTitle = string.Empty;
         Links.Clear();
-        RaisePropertyChanged(nameof(LinkCount));
-    }
-
-    private void ParseHtml(string html, string baseUrl)
-    {
-        var parseResult = _htmlParser.Parse(html, baseUrl);
-        PageTitle = parseResult.Title;
-        Links.Clear();
-        foreach (var l in parseResult.Links)
-            Links.Add(l);
         RaisePropertyChanged(nameof(LinkCount));
     }
 }

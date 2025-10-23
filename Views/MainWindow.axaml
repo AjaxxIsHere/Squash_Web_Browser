@@ -65,7 +65,7 @@
                         <ScrollViewer HorizontalScrollBarVisibility="Visible" VerticalScrollBarVisibility="Visible">
                             <TextBox Text="{Binding HtmlSource}" 
                             IsReadOnly="True" AcceptsReturn="True" AcceptsTab="True"
-                                     Background="#000000ff" Foreground="#ffffffff" FontFamily="Consolas, Courier New, monospace"
+                                     Background="#000000ff" Foreground="#ffffff" FontFamily="Consolas, Courier New, monospace"
                                      FontSize="13" TextWrapping="NoWrap" BorderThickness="0" MinHeight="200"/>
                         </ScrollViewer>
                     </Border>
