@@ -30,9 +30,8 @@ Because it is built with **Avalonia UI**, Squash is truly cross-platform. Whethe
 ## 📸 Screenshots
 
 <div align="center">
-  <img src="https://via.placeholder.com/800x450/1e293b/f8fafc?text=Squash+Browser+UI+Screenshot+1" width="600" style="border-radius: 8px; margin-bottom: 10px;">
+  <img src="ss1.png" width="600" style="border-radius: 8px; margin-bottom: 10px;">
   <br>
-  <i>Squash Browser rendering a modern web page.</i>
 </div>
 
 ---
